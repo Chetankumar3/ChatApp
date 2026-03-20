@@ -12,10 +12,9 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 
 from contextlib import asynccontextmanager
-from database import SessionLocal
+from database import AsyncSessionLocal, engine, get_db
 import DB_models
-from models import GroupMessage, Message
-from database import engine, get_db
+from models import Message
 
 WEBCLIENT_ID = os.getenv("WEBCLIENT_ID")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -59,13 +58,12 @@ async def login(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid token")
 
     try:
-        user = await db.scalars(
+        userid = await db.scalar(
                         select(DB_models.OAuthTable.UserId)
                         .where(DB_models.OAuthTable.OAuthId==IdInfo["sub"])
                     )
-        user = user.all()
     
-        if not user:
+        if not userid:
             user_ = DB_models.User(
                 Name=IdInfo["name"],
                 Email=IdInfo["email"],
@@ -76,7 +74,7 @@ async def login(token: str, db: Session = Depends(get_db)):
             await db.flush()
             await db.refresh(user_)
 
-            outh_ = DB_models.OAuth(
+            outh_ = DB_models.OAuthTable(
                 UserId=user_.Id,
                 OAuthId=IdInfo["sub"]
             )
@@ -86,7 +84,7 @@ async def login(token: str, db: Session = Depends(get_db)):
             
             return {"UserId": user_.Id}
 
-        return {"UserId": user}
+        return {"UserId": userid}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -141,7 +139,7 @@ async def get_all_users(db: Session = Depends(get_db)):
 @app.websocket("/ws/{Username}")
 async def websocket_endpoint(websocket_: WebSocket, Username: str):
     UserId: 0
-    async with SessionLocal() as db:
+    async with AsyncSessionLocal() as db:
         UserId = await db.scalar(
             select(DB_models.User.Id)
             .where(DB_models.User.Username == Username)
@@ -156,7 +154,7 @@ async def websocket_endpoint(websocket_: WebSocket, Username: str):
         while True:
             message = await websocket_.receive_json()
 
-            async with SessionLocal() as db:
+            async with AsyncSessionLocal() as db:
                 if message["Type"]==0:
                     Message = DB_models.Message(
                         FromId=message["FromId"],
