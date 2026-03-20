@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-class Message():
+class Message(BaseModel):
     Id: int
     Type: int # 0=personal, 1=group
     FromId: int
@@ -8,3 +8,6 @@ class Message():
     Message: str
     SentAt: str
     ReceivedAt: str
+
+class TokenData(BaseModel):
+    Token: str
