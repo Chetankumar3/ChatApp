@@ -1,13 +1,16 @@
 from pydantic import BaseModel
 
 class Message(BaseModel):
-    Id: int
-    Type: int # 0=personal, 1=group
-    FromId: int
-    ToId: int
-    Message: str
-    SentAt: str
-    ReceivedAt: str
+    id: int
+    type: int # 0=personal, 1=group
+    fromId: int
+    toId: int
+    message: str
+    sentAt: str
+    receivedAt: str
 
-class TokenData(BaseModel):
-    Token: str
+class Group(BaseModel):
+    id: int
+    name: str
+    description: str
+    displayPictureUrl: str

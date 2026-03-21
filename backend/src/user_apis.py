@@ -7,50 +7,50 @@ from database import get_db
 
 router = APIRouter()
 
-@router.get("/{UserId}/get_all_messages")
-async def get_all_messages(UserId: int, db: Session = Depends(get_db)):
+@router.get("/{userId}/get_all_messages")
+async def get_all_messages(userId: int, db: Session = Depends(get_db)):
     try:
-        Messages = await db.scalars(
-            select(DB_models.Message)
-            .where(or_(DB_models.Message.FromId==UserId, DB_models.Message.ToId==UserId))
+        messages = await db.scalars(
+            select(DB_models.message)
+            .where(or_(DB_models.message.fromId == userId, DB_models.message.toId == userId))
         )
-        Messages = Messages.all()
+        messages = messages.all()
 
         group_subquery = (
-            select(DB_models.MapTable.GroupId)
-            .where(DB_models.MapTable.UserId == UserId)
+            select(DB_models.mapTable.groupId)
+            .where(DB_models.mapTable.userId == userId)
         )
         
         stmt = (
-            select(DB_models.GroupMessage, DB_models.MessageReceipt)
+            select(DB_models.groupMessage, DB_models.messageReceipt)
             .join(
-                DB_models.MessageReceipt, 
-                DB_models.GroupMessage.Id == DB_models.MessageReceipt.GroupMessageId
+                DB_models.messageReceipt, 
+                DB_models.groupMessage.id == DB_models.messageReceipt.groupMessageId
             )
             .where(
-                DB_models.GroupMessage.ToId.in_(group_subquery),
-                DB_models.GroupMessage.FromId == UserId
+                DB_models.groupMessage.toId.in_(group_subquery),
+                DB_models.groupMessage.fromId == userId
             )
         )
         
         results = await db.execute(stmt)
-        GroupMessages = results.scalars().all()
+        groupMessages = results.scalars().all()
 
-        return {"Messages": Messages, "GroupMessages": GroupMessages}
+        return {"messages": messages, "groupMessages": groupMessages}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 class UsernameUpdateRequest(BaseModel):
-    NewUsername: str
+    newUsername: str
 
-@router.post("/{UserId}/change_username")
-async def change_username(UserId: int, data: UsernameUpdateRequest, db: Session = Depends(get_db)):
+@router.post("/{userId}/change_username")
+async def change_username(userId: int, data: UsernameUpdateRequest, db: Session = Depends(get_db)):
     try:
         await db.execute(
-            update(DB_models.User)
-            .where(DB_models.User.Id == UserId)
-            .values(Username=data.NewUsername)
+            update(DB_models.user)
+            .where(DB_models.user.id == userId)
+            .values(username=data.newUsername)
         )
         await db.commit()
     except Exception as e:
