@@ -1,5 +1,4 @@
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import ForeignKey, func, String, Text
@@ -7,63 +6,63 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
 
-class User(Base):
-    __tablename__ =  "user"
+class user(Base):
+    __tablename__ = "user"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    Username: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=True)
-    Name: Mapped[str] = mapped_column(String(20), index=True)
-    MobileNumber: Mapped[str] = mapped_column(String(15), nullable=True)
-    Email: Mapped[Optional[str]] = mapped_column(String(30))
-    ProfilePictureUrl: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(20), index=True)
+    mobileNumber: Mapped[str] = mapped_column(String(15), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(30))
+    displayPictureUrl: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-class OAuthTable(Base):
+class oAuthTable(Base):
     __tablename__ = "oauth_table"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    UserId: Mapped[int] = mapped_column(ForeignKey("user.Id"), index=True)
-    OAuthId: Mapped[Optional[str]] = mapped_column(String(60), index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    oauthId: Mapped[Optional[str]] = mapped_column(String(60), index=True)
 
-class Group(Base):
-    __tablename__ =  "group"
+class group(Base):
+    __tablename__ = "group"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    Name: Mapped[str] = mapped_column(String(30), index=True)
-    Description: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    ProfilePictureUrl: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(30), index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    displayPictureUrl: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-class MapTable(Base):
-    __tablename__ =  "map_table"
+class mapTable(Base):
+    __tablename__ = "map_table"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    UserId: Mapped[int] = mapped_column(ForeignKey("user.Id"), index=True)
-    GroupId: Mapped[int] = mapped_column(ForeignKey("group.Id"), index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    groupId: Mapped[int] = mapped_column(ForeignKey("group.id"), index=True)
 
-class Message(Base):
+class message(Base):
     __tablename__ = "message"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    FromId: Mapped[int] = mapped_column(ForeignKey("user.Id"), index=True)
-    ToId: Mapped[int] = mapped_column(ForeignKey("user.Id"), index=True)
-    Body: Mapped[str] = mapped_column(Text)
-    SentAt: Mapped[datetime] = mapped_column(server_default=func.now())
-    ReceivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    SeenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fromId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    toId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    body: Mapped[str] = mapped_column(Text)
+    sentAt: Mapped[datetime] = mapped_column(server_default=func.now())
+    receivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    seenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
-class GroupMessage(Base):
+class groupMessage(Base):
     __tablename__ = "group_message"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    FromId: Mapped[int] = mapped_column(ForeignKey("user.Id"), index=True)
-    ToId: Mapped[int] = mapped_column(ForeignKey("group.Id"), index=True)
-    Body: Mapped[str] = mapped_column(Text)
-    SentAt: Mapped[datetime] = mapped_column(server_default=func.now())
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fromId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    toId: Mapped[int] = mapped_column(ForeignKey("group.id"), index=True)
+    body: Mapped[str] = mapped_column(Text)
+    sentAt: Mapped[datetime] = mapped_column(server_default=func.now())
 
-class MessageReceipt(Base):
+class messageReceipt(Base):
     __tablename__ = "message_receipt"
 
-    Id: Mapped[int] = mapped_column(primary_key=True)
-    GroupMessageId: Mapped[int] = mapped_column(ForeignKey("group_message.Id"), index=True)
-    UserId: Mapped[int] = mapped_column(ForeignKey("user.Id"), index=True)
-    ReceivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    SeenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    groupMessageId: Mapped[int] = mapped_column(ForeignKey("group_message.id"), index=True)
+    userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    receivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    seenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)

@@ -1,20 +1,20 @@
 from FastAPI import WebSocket
 import app.models as models
 
-class ConnectionManager:
+class connectionManager:
     def __init__(self):
         self.active_connections: dict[int, WebSocket] = {}
 
-    async def connect(self, websocket_: WebSocket, UserId: int):
+    async def connect(self, websocket_: WebSocket, userId: int):
         await websocket_.accept()
-        self.active_connections[UserId] = websocket_
+        self.active_connections[userId] = websocket_
 
-    async def disconnect(self, UserId: int):
-        del self.active_connections[UserId]
+    async def disconnect(self, userId: int):
+        del self.active_connections[userId]
 
-    async def send_message(self, data: models.Message, ToId: int):
-        if ToId in self.active_connections:
-            await self.active_connections[ToId].send_json(data)
+    async def send_message(self, data: models.message, toId: int):
+        if toId in self.active_connections:
+            await self.active_connections[toId].send_json(data)
 
 
-manager = ConnectionManager()  
+manager = connectionManager()  

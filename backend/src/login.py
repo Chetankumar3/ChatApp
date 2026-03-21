@@ -12,9 +12,13 @@ from sqlalchemy.orm import Session
 from google.oauth2 import id_token
 from fastapi import Depends
 from google.auth.transport import requests
+from pydantic import BaseModel
 
 WEBCLIENT_ID = os.getenv("WEBCLIENT_ID")
 router = APIRouter()
+
+class TokenData(BaseModel):
+    token: str
 
 @router.post("/login")
 async def login(data: models.TokenData, db: Session = Depends(get_db)):
@@ -35,32 +39,32 @@ async def login(data: models.TokenData, db: Session = Depends(get_db)):
     try:
         print(IdInfo)
 
-        userid = await db.scalar(
-                        select(DB_models.OAuthTable.UserId)
-                        .where(DB_models.OAuthTable.OAuthId==IdInfo["sub"])
+        user_id = await db.scalar(
+                        select(DB_models.oAuthTable.userId)
+                        .where(DB_models.oAuthTable.oauthId == IdInfo["sub"])
                     )
     
-        if not userid:
-            user_ = DB_models.User(
-                Name=IdInfo["name"],
-                Email=IdInfo["email"],
-                ProfilePictureUrl=IdInfo.get("picture")
+        if not user_id:
+            user_ = DB_models.user(
+                name=IdInfo["name"],
+                email=IdInfo["email"],
+                displayPictureUrl=IdInfo.get("picture")
             )
 
             db.add(user_)
             await db.flush()
             await db.refresh(user_)
 
-            outh_ = DB_models.OAuthTable(
-                UserId=user_.Id,
-                OAuthId=IdInfo["sub"]
+            oauth_ = DB_models.oAuthTable(
+                userId=user_.id,
+                oauthId=IdInfo["sub"]
             )
 
-            db.add(outh_)
+            db.add(oauth_)
             await db.commit()
             
-            return {"UserId": user_.Id}
+            return {"userId": user_.id}
 
-        return {"UserId": userid}
+        return {"userId": user_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 import DB_models
-from src import login, websocket_endpoint, user_apis, general
+from src import login, websocket_endpoint, user_apis, general, groups
 
 async def init_db():
     async with engine.begin() as conn:
@@ -35,14 +35,13 @@ app.include_router(login.router, tags=["Login"])
 app.include_router(websocket_endpoint.router)
 app.include_router(user_apis.router, prefix="/users", tags=["User APIs"])
 app.include_router(general.router, tags=["General APIs"])
+app.include_router(groups.router, prefix="/groups", tags=["Group APIs"])
 
 
 '''
-/
-Left:
-- Receive time updation
-- Message deletion
-- Group creation & deletion
+/When user come online (connection established), send all messages that are not received.
+/An API to mark message(s) seen. (one side push)
 
-For frontend: username change = websocket re-establish.
+Left:
+- Group creation & deletion
 '''

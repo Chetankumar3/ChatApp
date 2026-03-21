@@ -7,73 +7,74 @@ import asyncio
 
 router = APIRouter()
 
-@router.websocket("/ws/{Username}")
-async def websocket_endpoint(websocket_: WebSocket, Username: str):
-    UserId: 0
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket_: WebSocket, user_id: int):
+    user_exists = 0
     async with AsyncSessionLocal() as db:
-        UserId = await db.scalar(
-            select(DB_models.User.Id)
-            .where(DB_models.User.Username == Username)
+        user_exists = await db.scalar(
+            select(DB_models.user.id)
+            .where(DB_models.user.id == user_id)
         )
 
-    if not UserId:
-        websocket_.close(code=1008)
+    if not user_exists:
+        await websocket_.close(code=1008)
+        return
 
-    await manager.connect(websocket_, UserId)
+    await manager.connect(websocket_, user_id)
 
     try:
         while True:
             data = await websocket_.receive_json()
 
-            Group = []
+            group_users = []
             async with AsyncSessionLocal() as db:
-                if data["Type"]==0:
-                    DBMessage = DB_models.Message(
-                        FromId=data["FromId"],
-                        ToId=data["ToId"],
-                        Body=data["Body"],
-                        SentAt=data["SentAt"]
+                if data["type"] == 0:
+                    DBMessage = DB_models.message(
+                        fromId=data["fromId"],
+                        toId=data["toId"],
+                        body=data["body"],
+                        sentAt=data["sentAt"]
                     )
                     db.add(DBMessage)
                     await db.commit()
-                elif data["Type"]==1:
-                    DBGroupMessage = DB_models.Message(
-                        FromId=data["FromId"],
-                        ToId=data["ToId"],
-                        Body=data["Body"],
-                        SentAt=data["SentAt"]
+                elif data["type"] == 1:
+                    DBGroupMessage = DB_models.message(
+                        fromId=data["fromId"],
+                        toId=data["toId"],
+                        body=data["body"],
+                        sentAt=data["sentAt"]
                     )
                     db.add(DBGroupMessage)
                     await db.flush()
                     await db.refresh(DBGroupMessage)
 
-                    Group = await db.scalars(
-                        select(DB_models.MapTable.UserId)
-                        .where(DB_models.MapTable.GroupId == data["ToId"])
+                    group_users = await db.scalars(
+                        select(DB_models.mapTable.userId)
+                        .where(DB_models.mapTable.groupId == data["toId"])
                     )
-                    Group = Group.all()
+                    group_users = group_users.all()
 
-                    DBMessageReceipt = [
-                        DB_models.MessageReceipt(
-                            GroupMessageId=DBGroupMessage.Id,
-                            UserId=UserId
-                        ) for UserId in Group]
+                    message_receipts = [
+                        DB_models.messageReceipt(
+                            groupMessageId=DBGroupMessage.id,
+                            userId=u
+                        ) for u in group_users]
 
-                    db.add_all(DBMessageReceipt)
+                    db.add_all(message_receipts)
 
-                    DBCurrentUserReceipt = DB_models.MessageReceipt(
-                        GroupMessageId=DBGroupMessage.Id,
-                        UserId=data["FromId"],
-                        ReceivedAt=data["SentAt"]
+                    current_user_receipt = DB_models.messageReceipt(
+                        groupMessageId=DBGroupMessage.id,
+                        userId=data["fromId"],
+                        receivedAt=data["sentAt"]
                     )
-                    db.merge(DBCurrentUserReceipt)
+                    db.merge(current_user_receipt)
                     await db.commit()
 
-            if data["Type"]==0:
-                await manager.send_message(data, data["ToId"])
-            elif data["Type"]==1:
-                Tasks = [manager.send_message(data, To_) for To_ in Group]
-                await asyncio.gather(*Tasks)
+            if data["type"] == 0:
+                await manager.send_message(data, data["toId"])
+            elif data["type"] == 1:
+                tasks = [manager.send_message(data, to_) for to_ in group_users]
+                await asyncio.gather(*tasks)
 
     except WebSocketDisconnect:
-        await manager.disconnect(websocket_, UserId)
+        await manager.disconnect(websocket_, user_id)
