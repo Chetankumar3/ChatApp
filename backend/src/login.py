@@ -39,11 +39,12 @@ async def login(data: models.TokenData, db: Session = Depends(get_db)):
     try:
         print(IdInfo)
 
-        user_id = await db.scalar(
+        user_id = await db.execute(
                         select(DB_models.oAuthTable.userId)
                         .where(DB_models.oAuthTable.oauthId == IdInfo["sub"])
-                    )
-    
+                    )    
+        user_id = user_id.scalar_one_or_none()
+
         if not user_id:
             user_ = DB_models.user(
                 name=IdInfo["name"],

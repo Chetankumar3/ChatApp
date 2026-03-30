@@ -28,7 +28,7 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
 
             group_users = []
             async with AsyncSessionLocal() as db:
-                if data["type"] == 0:
+                if data["type"] == "direct_message":
                     DBMessage = DB_models.message(
                         fromId=data["fromId"],
                         toId=data["toId"],
@@ -37,8 +37,8 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                     )
                     db.add(DBMessage)
                     await db.commit()
-                elif data["type"] == 1:
-                    DBGroupMessage = DB_models.message(
+                elif data["type"] == "group_message":
+                    DBGroupMessage = DB_models.groupMessage(
                         fromId=data["fromId"],
                         toId=data["toId"],
                         body=data["body"],
@@ -70,9 +70,9 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                     db.merge(current_user_receipt)
                     await db.commit()
 
-            if data["type"] == 0:
+            if data["type"] == "direct_message":
                 await manager.send_message(data, data["toId"])
-            elif data["type"] == 1:
+            elif data["type"] == "group_message":
                 tasks = [manager.send_message(data, to_) for to_ in group_users]
                 await asyncio.gather(*tasks)
 

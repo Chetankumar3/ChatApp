@@ -1,0 +1,2 @@
+- An API to mark message(s) seen. (one side push)
+- When user come online (connection established), send all messages that are not received. Store all chats and only send new ones.

@@ -35,6 +35,7 @@ class mapTable(Base):
     __tablename__ = "map_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    admin: Mapped[bool] = mapped_column() # true for "admin", false for "member"
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     groupId: Mapped[int] = mapped_column(ForeignKey("group.id"), index=True)
 

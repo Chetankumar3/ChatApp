@@ -1,16 +1,26 @@
 from pydantic import BaseModel
+from typing import Optional
 
-class Message(BaseModel):
+class message(BaseModel):
     id: int
-    type: int # 0=personal, 1=group
+    type: str # "direct_message" or "group_message"
     fromId: int
     toId: int
     message: str
     sentAt: str
-    receivedAt: str
+    receivedAt: Optional[str] = None
 
-class Group(BaseModel):
+class group(BaseModel):
     id: int
     name: str
     description: str
+    displayPictureUrl: str
+    members = Optional[list[str]] = None
+
+class user(BaseModel):
+    id: int
+    username: str
+    name: str
+    mobileNumber: str
+    email: str
     displayPictureUrl: str

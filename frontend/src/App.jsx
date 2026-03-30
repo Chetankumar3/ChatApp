@@ -54,9 +54,9 @@ function LoginScreen({ onLogin }) {
         headers: {
         "Content-Type": "application/json",
         },
-        body: JSON.stringify({ Token: response.credential })
+        body: JSON.stringify({ token: response.credential })
       });
-      onLogin(data.UserId);
+      onLogin(data.userId);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -144,7 +144,7 @@ function SetUsernameScreen({ userId, onDone }) {
     setLoading(true);
     setErr(null);
     try {
-      await api(`/change_username?UserId=${userId}&NewUsername=${encodeURIComponent(clean)}`, {
+      await api(`/users/${userId}/change_username?newUsername=${encodeURIComponent(clean)}`, {
         method: "POST",
       });
       onDone(clean);
@@ -198,7 +198,7 @@ function SettingsPanel({ user, onUsernameChange, onClose }) {
     if (!clean || clean === user.username) return;
     setLoading(true); setErr(null); setOk(false);
     try {
-      await api(`/change_username?UserId=${user.id}&NewUsername=${encodeURIComponent(clean)}`, {
+      await api(`/users/${user.id}/change_username?newUsername=${encodeURIComponent(clean)}`, {
         method: "POST",
       });
       setOk(true);
@@ -261,9 +261,9 @@ function ChatPanel({ user, selected, messages, ws }) {
 
   const filtered = messages.filter(m => {
     if (selected.type === "personal")
-      return (m.FromId === user.id && m.ToId === selected.id) ||
-             (m.FromId === selected.id && m.ToId === user.id);
-    return m.ToId === selected.id; // group
+      return (m.fromId === user.id && m.toId === selected.id) ||
+             (m.fromId === selected.id && m.toId === user.id);
+    return m.toId === selected.id; // group
   });
 
   useEffect(() => {
@@ -274,11 +274,11 @@ function ChatPanel({ user, selected, messages, ws }) {
     const clean = text.trim();
     if (!clean || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
     const payload = {
-      Type: selected.type === "personal" ? 0 : 1,
-      FromId: user.id,
-      ToId: selected.id,
-      Body: clean,
-      SentAt: new Date().toISOString(),
+      type: selected.type === "personal" ? 0 : 1,
+      fromId: user.id,
+      toId: selected.id,
+      body: clean,
+      sentAt: new Date().toISOString(),
     };
     ws.current.send(JSON.stringify(payload));
     setText("");
@@ -300,20 +300,20 @@ function ChatPanel({ user, selected, messages, ws }) {
           <div className="text-xs text-[#ccc] text-center pt-10">No messages yet.</div>
         )}
         {filtered.map((m, i) => {
-          const mine = m.FromId === user.id;
+          const mine = m.fromId === user.id;
           return (
-            <div key={m.Id ?? i} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+            <div key={m.id ?? i} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[68%] text-sm px-3 py-2 ${
                 mine
                   ? "bg-[#1a1a1a] text-white"
                   : "bg-white border border-[#e8e4df] text-[#1a1a1a]"
               }`}>
                 {selected.type === "group" && !mine && (
-                  <div className="text-[10px] text-[#aaa] mb-1">uid:{m.FromId}</div>
+                  <div className="text-[10px] text-[#aaa] mb-1">uid:{m.fromId}</div>
                 )}
-                <div className="leading-relaxed">{m.Body}</div>
+                <div className="leading-relaxed">{m.body}</div>
                 <div className={`text-[10px] mt-1 ${mine ? "text-[#888]" : "text-[#bbb]"} text-right`}>
-                  {fmt(m.SentAt)}
+                  {fmt(m.sentAt)}
                 </div>
               </div>
             </div>
@@ -358,13 +358,13 @@ function MainApp({ user, onUsernameChange }) {
   // ── Fetch contacts + history ────────────────────────────────────────────────
   useEffect(() => {
     api("/get_all_users")
-      .then(d => setContacts((d.Users ?? []).filter(u => u.Id !== user.id)))
+      .then(d => setContacts((d.users ?? []).filter(u => u.id !== user.id)))
       .catch(console.error);
 
-    api(`/ws/${user.id}/get_all_messages`)
+    api(`/users/${user.id}/get_all_messages`)
       .then(d => {
-        const personal  = (d.Messages      ?? []).map(m => ({ ...m, type: "personal" }));
-        const grpMsgs   = (d.GroupMessages ?? []).map(m => ({ ...m, type: "group"    }));
+        const personal = (d.messages ?? []).map(m => ({ ...m, type: "personal" }));
+        const grpMsgs = (d.groupMessages ?? []).map(m => ({ ...m, type: "group" }));
         setMessages([...personal, ...grpMsgs]);
       })
       .catch(console.error);
@@ -402,8 +402,8 @@ function MainApp({ user, onUsernameChange }) {
     const isActive = selected?.id === id && selected?.type === type;
     const unread = messages.filter(m =>
       type === "personal"
-        ? (m.FromId === id && m.ToId === user.id)
-        : (m.ToId === id)
+        ? (m.fromId === id && m.toId === user.id)
+        : (m.toId === id)
     ).length;
 
     return (
@@ -464,14 +464,14 @@ function MainApp({ user, onUsernameChange }) {
             <div className="px-4 py-2 text-[11px] text-[#444]">No users found.</div>
           )}
           {contacts.map(c => (
-            <SidebarItem key={c.Id} id={c.Id} name={c.Username} type="personal" />
+            <SidebarItem key={c.id} id={c.id} name={c.username} type="personal" />
           ))}
 
           {groups.length > 0 && (
             <>
               <div className="px-4 pt-5 pb-1 text-[10px] text-[#444] uppercase tracking-widest">Groups</div>
               {groups.map(g => (
-                <SidebarItem key={g.Id} id={g.Id} name={g.Name} type="group" />
+                <SidebarItem key={g.id} id={g.id} name={g.name} type="group" />
               ))}
             </>
           )}
@@ -512,8 +512,8 @@ export default function App() {
     // Fetch all users to find current user's username
     try {
       const d = await api("/get_all_users");
-      const me = (d.Users ?? []).find(u => u.Id === userId);
-      setUser({ id: userId, username: me?.Username ?? null });
+      const me = (d.users ?? []).find(u => u.id === userId);
+      setUser({ id: userId, username: me?.username ?? null });
     } catch {
       setUser({ id: userId, username: null });
     }
