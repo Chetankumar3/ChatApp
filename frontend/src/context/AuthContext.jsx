@@ -3,7 +3,16 @@ import { isSessionValid } from '../utils/time.js';
 import { getUserInfo } from '../api/users.js';
 
 const AuthContext = createContext(null);
-const STORAGE_KEY = 'ping_session';
+const TOKEN_KEY = 'ping_token';
+
+function decodeJWT(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
   const [userId, setUserId]   = useState(null);
@@ -14,15 +23,16 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const { userId: id, loginTime } = JSON.parse(raw);
-          if (isSessionValid(loginTime)) {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          const payload = decodeJWT(token);
+          if (payload && payload.exp * 1000 > Date.now()) {
+            const id = payload.user_id;
             setUserId(id);
             const info = await getUserInfo(id).catch(() => null);
             setMe(info);
           } else {
-            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(TOKEN_KEY);
           }
         }
       } finally {
@@ -31,15 +41,18 @@ export function AuthProvider({ children }) {
     })();
   }, []);
 
-  const login = useCallback(async (id) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ userId: id, loginTime: Date.now() }));
+  const login = useCallback(async (token, isNewUser) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    const payload = decodeJWT(token);
+    const id = payload.user_id;
     setUserId(id);
     const info = await getUserInfo(id).catch(() => null);
     setMe(info);
+    return { userId: id, isNewUser };
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_KEY);
     setUserId(null);
     setMe(null);
   }, []);

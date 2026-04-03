@@ -1,8 +1,13 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('ping_token');
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers,
     ...options,
   });
   if (!res.ok) {

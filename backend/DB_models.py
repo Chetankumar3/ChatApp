@@ -23,6 +23,14 @@ class oAuthTable(Base):
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     oauthId: Mapped[Optional[str]] = mapped_column(String(60), index=True)
 
+class passwords(Base):
+    __tablename__ = "passwords"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True, unique=True)
+    username: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(128))
+
 class group(Base):
     __tablename__ = "group"
 

@@ -1,15 +1,16 @@
 from pydantic import BaseModel
 import DB_models, models
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update, or_
 from sqlalchemy.orm import Session
 from database import get_db
 from sqlalchemy import select, update, or_, case
+from .login import get_current_user
 
 router = APIRouter()
 
 @router.get("/get_all_conversations/{userId}")
-async def get_all_conversations(userId: int, db: Session = Depends(get_db)):
+async def get_all_conversations(userId: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         # get direct messages
         messages = await db.scalars(
@@ -91,7 +92,7 @@ async def get_all_conversations(userId: int, db: Session = Depends(get_db)):
 
 
 @router.get("/get_user_info/{userId}", response_model=models.user)
-async def get_user_info(userId: int, db: Session = Depends(get_db)):
+async def get_user_info(userId: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         user_info = await db.execute(
             select(DB_models.user)
@@ -111,7 +112,7 @@ class UsernameUpdateRequest(BaseModel):
     newUsername: str
 
 @router.post("/change_username/{userId}")
-async def change_username(userId: int, data: UsernameUpdateRequest, db: Session = Depends(get_db)):
+async def change_username(userId: int, data: UsernameUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         await db.execute(
             update(DB_models.user)
