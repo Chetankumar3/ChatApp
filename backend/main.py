@@ -22,8 +22,8 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
-    "http://16.112.674.12"
-    "http://16.112.674.12.nip.io"
+    "http://16.112.64.12",
+    "http://16.112.64.12.nip.io"
 ]
 
 app.add_middleware(
