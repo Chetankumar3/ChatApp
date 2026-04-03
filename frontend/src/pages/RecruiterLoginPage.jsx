@@ -67,7 +67,7 @@ export default function RecruiterLoginPage() {
               </svg>
             </div>
             <h1 className="text-tx-1 text-2xl font-bold tracking-tight">Recruiter Login</h1>
-            <p className="text-tx-2 text-sm mt-1">Access for 2 hours</p>
+            <p className="text-tx-2 text-sm mt-1">Guest Access for 2 hours session</p>
           </div>
 
           <div className="space-y-4">
@@ -139,12 +139,18 @@ export default function RecruiterLoginPage() {
               </form>
             )}
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <button
                 onClick={() => navigate('/forgot-password')}
                 className="text-accent text-sm hover:underline"
               >
                 Forgot Password?
+              </button>
+              <button
+                onClick={() => navigate('/recruiter/register')}
+                className="text-accent text-sm hover:underline"
+              >
+                New recruiter? Register here
               </button>
             </div>
 

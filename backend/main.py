@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
     yield
     print("Shutting down gracefully...")
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path="/chatapp/api")
 
 origins = [
     "http://localhost:5173",

@@ -10,7 +10,7 @@ class connectionManager:
         self.active_connections[userId] = websocket_
 
     async def disconnect(self, userId: int):
-        del self.active_connections[userId]
+        self.active_connections.pop(userId, None)
 
     async def send_message(self, data: models.message, toId: int):
         if toId in self.active_connections:

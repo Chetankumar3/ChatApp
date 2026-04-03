@@ -1,7 +1,7 @@
 import Avatar from '../Avatar.jsx';
 import BackButton from '../BackButton.jsx';
 
-export default function ChatHeader({ name, id, subtitle, onBack, onInfoClick, isGroup }) {
+export default function ChatHeader({ name, src, id, subtitle, onBack, onInfoClick, isGroup }) {
   return (
     <div className="h-14 px-4 flex items-center gap-3 border-b border-border bg-surface shrink-0">
       {/* Back (mobile) */}
@@ -11,7 +11,7 @@ export default function ChatHeader({ name, id, subtitle, onBack, onInfoClick, is
         </div>
       )}
 
-      <Avatar name={name} id={id} size="sm" />
+      <Avatar name={name} src={src} id={id} size="sm" />
 
       <div className="flex-1 min-w-0">
         <p className="text-tx-1 font-semibold text-sm truncate">{name || `#${id}`}</p>

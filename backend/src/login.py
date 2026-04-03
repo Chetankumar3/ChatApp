@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 import bcrypt
 
 WEBCLIENT_ID = os.getenv("WEBCLIENT_ID")
-JWT_SECRET = os.getenv("JWT_SECRET", "default_secret")  # Add to .env
+JWT_SECRET = os.getenv("JWT_SECRET")
 router = APIRouter()
 
 class LoginCredentials(BaseModel):
@@ -130,7 +130,40 @@ async def credentials_login(data: LoginCredentials, db: Session = Depends(get_db
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         token = create_jwt_token(password_entry.userId)
-        return {"token": token, "isNewUser": False}  # Assume existing users for credentials login
+        return {"token": token, "isNewUser": False}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/recruiter/register")
+async def recruiter_register(data: RegisterCredentials, db: Session = Depends(get_db)):
+    try:
+        existing = await db.execute(
+            select(DB_models.passwords).where(DB_models.passwords.username == data.username)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Username already exists")
+
+        user_ = DB_models.user(
+            name=data.name,
+            email=data.email,
+            username=data.username
+        )
+        db.add(user_)
+        await db.flush()
+        await db.refresh(user_)
+
+        hashed = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt())
+
+        password_ = DB_models.passwords(
+            userId=user_.id,
+            username=data.username,
+            hashed_password=hashed.decode('utf-8')
+        )
+        db.add(password_)
+        await db.commit()
+
+        token = create_jwt_token(user_.id)
+        return {"token": token, "isNewUser": False}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

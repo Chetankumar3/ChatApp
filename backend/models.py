@@ -10,12 +10,6 @@ class message(BaseModel):
     sentAt: str
     receivedAt: Optional[str] = None
 
-class group(BaseModel):
-    id: Optional[int] = None
-    name: str
-    description: str
-    displayPictureUrl: Optional[str] = None
-    members: Optional[list[int]] = None
 
 class user(BaseModel):
     id: int
@@ -24,3 +18,10 @@ class user(BaseModel):
     mobileNumber: Optional[str] = None
     email: str
     displayPictureUrl: str
+    
+class group(BaseModel):
+    id: Optional[int] = None
+    name: str
+    description: str
+    displayPictureUrl: Optional[str] = None
+    members: Optional[list[user]] = None

@@ -6,6 +6,7 @@ import ChatPage from './pages/ChatPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SetUsernamePage from './pages/SetUsernamePage.jsx';
 import RecruiterLoginPage from './pages/RecruiterLoginPage.jsx';
+import RecruiterRegisterPage from './pages/RecruiterRegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 
 function ProtectedRoute({ children }) {
@@ -26,11 +27,12 @@ function PublicRoute({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter rootPath="/chatapp/api">
       <AuthProvider>
         <Routes>
           <Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recruiter/login" element={<PublicRoute><RecruiterLoginPage /></PublicRoute>} />
+          <Route path="/recruiter/register" element={<PublicRoute><RecruiterRegisterPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/set-username" element={
             <ProtectedRoute>

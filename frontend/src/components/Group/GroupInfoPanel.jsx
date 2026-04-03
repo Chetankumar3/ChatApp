@@ -136,7 +136,7 @@ export default function GroupInfoPanel({ groupId, onClose }) {
           {/* Group identity */}
           {!editing ? (
             <div className="flex flex-col items-center gap-2 text-center">
-              <Avatar name={info.name} id={groupId} size="lg" />
+              <Avatar name={info.name} src={info.displayPictureUrl} id={groupId} size="lg" />
               <p className="text-tx-1 font-semibold">{info.name}</p>
               {info.description && <p className="text-tx-2 text-xs">{info.description}</p>}
               <button
@@ -186,10 +186,10 @@ export default function GroupInfoPanel({ groupId, onClose }) {
               </button>
             </div>
             <div className="space-y-1">
-              {(info.members || []).map((username) => (
-                <div key={username} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg">
-                  <Avatar name={username} id={username} size="sm" />
-                  <span className="text-tx-1 text-sm truncate">{username}</span>
+              {(info.members || []).map((user) => (
+                <div key={user.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg">
+                  <Avatar name={user.name} src={user.displayPictureUrl} id={user.id} size="sm" />
+                  <span className="text-tx-1 text-sm truncate">{user.username}</span>
                 </div>
               ))}
             </div>
@@ -233,7 +233,7 @@ export default function GroupInfoPanel({ groupId, onClose }) {
             return (
               <button key={u.id} onClick={() => setSelectedNew((p) => { const n = new Set(p); sel ? n.delete(u.id) : n.add(u.id); return n; })}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-left ${sel ? 'bg-accent/10 border border-accent/30' : 'hover:bg-hover border border-transparent'}`}>
-                <Avatar name={u.username || '?'} id={u.id} size="sm" />
+                <Avatar name={u.username || '?'} src={u.displayPictureUrl} id={u.id} size="sm" />
                 <span className="text-tx-1 text-sm flex-1 truncate">{u.username || `User ${u.id}`}</span>
                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${sel ? 'bg-accent border-accent' : 'border-border'}`}>
                   {sel && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}

@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket_: WebSocket, user_id: int):
-    user_exists = 0
+    user_exists = False
     async with AsyncSessionLocal() as db:
         user_exists = await db.scalar(
             select(DB_models.user.id)
@@ -78,4 +78,4 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                 await asyncio.gather(*tasks)
 
     except WebSocketDisconnect:
-        await manager.disconnect(websocket_, user_id)
+        await manager.disconnect(user_id)

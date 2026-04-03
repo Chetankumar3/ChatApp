@@ -37,6 +37,7 @@ export default function GroupChatView({ onBack }) {
         <ChatHeader
           name={name}
           id={activeConv.id}
+          src={group?.displayPictureUrl}
           subtitle={group?.description}
           onBack={onBack}
           isGroup

@@ -15,3 +15,10 @@ export function loginWithCredentials(username, password) {
     body: JSON.stringify({ username, password }),
   });
 }
+
+export function registerRecruiter(username, password, name, email) {
+  return apiFetch('/recruiter/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, password, name, email }),
+  });
+}
