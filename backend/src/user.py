@@ -8,8 +8,8 @@ from sqlalchemy import select, update, or_, case
 
 router = APIRouter()
 
-@router.get("/get_all_messages/{userId}")
-async def get_all_messages(userId: int, db: Session = Depends(get_db)):
+@router.get("/get_all_conversations/{userId}")
+async def get_all_conversations(userId: int, db: Session = Depends(get_db)):
     try:
         # get direct messages
         messages = await db.scalars(
@@ -49,7 +49,7 @@ async def get_all_messages(userId: int, db: Session = Depends(get_db)):
 
         associated_groups = await db.scalars(
             select(DB_models.group)
-            .where(DB_models.id.in_(group_ids))
+            .where(DB_models.group.id.in_(group_ids))
         )
         associated_groups = associated_groups.all()
 
@@ -71,7 +71,7 @@ async def get_all_messages(userId: int, db: Session = Depends(get_db)):
         # get message receipts of messages sent by the user in associated_groups
         from_current_user_group_message_ids = set(m.id for m in group_messages if m.fromId == userId)
 
-        message_receipts = db.scalars(
+        message_receipts = await db.scalars(
             select(DB_models.messageReceipt)
             .where(DB_models.messageReceipt.groupMessageId.in_(from_current_user_group_message_ids))
         )
@@ -102,7 +102,7 @@ async def get_user_info(userId: int, db: Session = Depends(get_db)):
         if not user_info:
             raise HTTPException(status_code=404, detail="User not found")
 
-        return {user_info}
+        return user_info
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
  

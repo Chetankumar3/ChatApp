@@ -2,8 +2,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy import select
 from database import AsyncSessionLocal, engine, get_db
 import DB_models
-from connection_manager import manager
+from .connection_manager import manager
 import asyncio
+from datetime import datetime
 
 router = APIRouter()
 
@@ -33,7 +34,7 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                         fromId=data["fromId"],
                         toId=data["toId"],
                         body=data["body"],
-                        sentAt=data["sentAt"]
+                        sentAt=datetime.fromisoformat(data["sentAt"].replace("Z", "+00:00"))
                     )
                     db.add(DBMessage)
                     await db.commit()
@@ -42,7 +43,7 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                         fromId=data["fromId"],
                         toId=data["toId"],
                         body=data["body"],
-                        sentAt=data["sentAt"]
+                        sentAt=datetime.fromisoformat(data["sentAt"].replace("Z", "+00:00"))
                     )
                     db.add(DBGroupMessage)
                     await db.flush()
@@ -65,7 +66,7 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                     current_user_receipt = DB_models.messageReceipt(
                         groupMessageId=DBGroupMessage.id,
                         userId=data["fromId"],
-                        receivedAt=data["sentAt"]
+                        receivedAt=datetime.fromisoformat(data["sentAt"].replace("Z", "+00:00"))
                     )
                     db.merge(current_user_receipt)
                     await db.commit()

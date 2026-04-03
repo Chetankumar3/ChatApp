@@ -11,16 +11,16 @@ class message(BaseModel):
     receivedAt: Optional[str] = None
 
 class group(BaseModel):
-    id: int
+    id: Optional[int] = None
     name: str
     description: str
-    displayPictureUrl: str
-    members = Optional[list[str]] = None
+    displayPictureUrl: Optional[str] = None
+    members: Optional[list[int]] = None
 
 class user(BaseModel):
     id: int
-    username: str
+    username: Optional[str] = None
     name: str
-    mobileNumber: str
+    mobileNumber: Optional[str] = None
     email: str
     displayPictureUrl: str

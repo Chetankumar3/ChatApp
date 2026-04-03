@@ -21,12 +21,12 @@ class TokenData(BaseModel):
     token: str
 
 @router.post("/login")
-async def login(data: models.TokenData, db: Session = Depends(get_db)):
+async def login(data: TokenData, db: Session = Depends(get_db)):
     IdInfo = None
     try:
         IdInfo = await asyncio.to_thread(
             id_token.verify_oauth2_token, 
-            data.Token, 
+            data.token, 
             requests.Request(), 
             WEBCLIENT_ID
         )

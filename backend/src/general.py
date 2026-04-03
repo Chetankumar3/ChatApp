@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/get_all_users")
 async def get_all_users(db: Session = Depends(get_db)):
     try:
-        result = await db.execute(select(DB_models.user.id, DB_models.user.username))
-        return {"users": result.mappings().all()}
+        result = await db.scalars(select(DB_models.user))
+        return {"users": result.all()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

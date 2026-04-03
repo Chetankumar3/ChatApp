@@ -1,2 +1,17 @@
 - An API to mark message(s) seen. (one side push)
 - When user come online (connection established), send all messages that are not received. Store all chats and only send new ones.
+
+Temp:
+- Send all convs not just messaged
+- Group addition notification
+- Check username and user exits before updating.
+- Indicate error after writine a message
+
+Frontend:
+- Set username for new account and remove optional in backend
+- Why APIs called twice??
+- Notification
+
+Both:
+- Change DP
+ - Set mobile number (with OTP)

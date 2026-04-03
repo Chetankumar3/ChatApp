@@ -16,22 +16,22 @@ class APIRsponse(BaseModel):
     success: bool
     message: str
 
-
 @router.put("/create/{creator_id}", response_model=groupCreation)
-async def create_group(group: models.group, members: set[int], creator_id: int, db: Session = Depends(get_db)):
+async def create_group(data: models.group, creator_id: int, db: Session = Depends(get_db)):
     try:
-        new_group = DB_models.group(**group.model_dump(exclude_unset=True))
+        new_group = DB_models.group(**data.model_dump(exclude_unset=True, exclude="members"))
         db.add(new_group)
         await db.commit()
         await db.refresh(new_group)
 
-        members.add(creator_id)
-        for user_id in members:
+        data.members.append(creator_id)
+        data.members = list(dict.fromkeys(data.members or []))
+        for user_id in data.members:
             map_table_entry = DB_models.mapTable(groupId=new_group.id, userId=user_id, admin=(user_id == creator_id))
             db.add(map_table_entry)
 
         await db.commit()
-        return {"message": "Group created successfully", "group_id": new_group.id}
+        return {"message": "Group created successfully", "groupId": new_group.id}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
@@ -52,16 +52,9 @@ async def get_group_info(group_id: int, db: Session = Depends(get_db)):
             select(DB_models.mapTable.userId)
             .where(DB_models.mapTable.groupId == group_id)
         )
-        user_ids = user_ids.scalars().all()
+        group_info.members = user_ids.scalars().all()
 
-        members = await db.execute(
-            select(DB_models.user.username)
-            .where(DB_models.user.id.in_(user_ids))
-        )
-        members = members.scalars().all()
-
-        group_info.members = members
-        return {group_info}
+        return group_info
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
