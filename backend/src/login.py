@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import DB_models
-import models
 from database import get_db
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request

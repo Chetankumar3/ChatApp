@@ -27,7 +27,7 @@ function PublicRoute({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter rootPath="/chatapp/api">
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <Routes>
           <Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
