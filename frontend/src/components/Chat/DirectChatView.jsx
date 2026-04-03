@@ -22,6 +22,7 @@ export default function DirectChatView({ onBack }) {
       <ChatHeader
         name={name}
         id={activeConv.id}
+        src={user?.displayPictureUrl}
         subtitle={user?.email}
         onBack={onBack}
         isGroup={false}

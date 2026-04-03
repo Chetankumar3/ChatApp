@@ -10,6 +10,7 @@ export function avatarColor(id) {
 
 export function initials(name) {
   if (!name) return '?';
+  console.log(name)
   return name
     .split(' ')
     .map((w) => w[0])

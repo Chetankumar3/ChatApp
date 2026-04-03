@@ -49,7 +49,8 @@ async def get_group_info(group_id: int, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Group not found")
         
         user_ids = await db.execute(
-            select(DB_models.mapTable.userId)
+            select(DB_models.user)
+            .join(DB_models.mapTable, DB_models.user.id == DB_models.mapTable.userId)
             .where(DB_models.mapTable.groupId == group_id)
         )
         group_info.members = user_ids.scalars().all()
@@ -70,7 +71,7 @@ async def update_group(modifier_id: int, group_id: int, group: models.group, db:
         if not is_admin:
             raise HTTPException(status_code=403, detail="Only admins can update the group")
 
-        group_exists = db.scalar(
+        group_exists = await db.scalar(
             select(DB_models.group)
             .where(DB_models.group.id == group_id)
         )
@@ -100,7 +101,7 @@ async def add_member(group_id: int, modifier_id: int, user_ids: list[int], db: S
         if not is_admin:
             raise HTTPException(status_code=403, detail="Only admins can update the group")
         
-        group_exists = db.scalar(select(DB_models.group).where(DB_models.group.id == group_id))
+        group_exists = await db.scalar(select(DB_models.group).where(DB_models.group.id == group_id))
         if not group_exists:
             raise HTTPException(status_code=404, detail="Group not found")
         
@@ -117,18 +118,18 @@ async def add_member(group_id: int, modifier_id: int, user_ids: list[int], db: S
 @router.delete("/exit/{group_id}/{user_id}", response_model=APIRsponse)
 async def exit_group(group_id: int, user_id: int, db: Session = Depends(get_db)):
     try:
-        group_exists = db.scalar(select(DB_models.group).where(DB_models.group.id == group_id))
+        group_exists = await db.scalar(select(DB_models.group).where(DB_models.group.id == group_id))
         if not group_exists:
             raise HTTPException(status_code=404, detail="Group not found")
         
-        user_in_group = db.scalar(
+        user_in_group = await db.scalar(
             select(DB_models.mapTable)
             .where(and_(DB_models.mapTable.groupId == group_id, DB_models.mapTable.userId == user_id))
         )
         if not user_in_group:
             raise HTTPException(status_code=400, detail="User not in group")
 
-        db.delete(user_in_group)
+        await db.delete(user_in_group)
         await db.commit()
         return {"success": True, "message": "User exited group successfully"}
     except Exception as e:
@@ -146,7 +147,7 @@ async def delete_group(modifier_id: int, group_id: int, db: Session = Depends(ge
         if not is_admin:
             raise HTTPException(status_code=403, detail="Only admins can delete the group")
         
-        db_group = db.scalar(select(DB_models.group).where(DB_models.group.id == group_id))
+        db_group = await db.scalar(select(DB_models.group).where(DB_models.group.id == group_id))
         if not db_group:
             raise HTTPException(status_code=404, detail="Group not found")
         
@@ -163,7 +164,7 @@ async def delete_group(modifier_id: int, group_id: int, db: Session = Depends(ge
             .where(DB_models.groupMessage.toId == group_id)
         )
 
-        db.delete(db_group)
+        await db.delete(db_group)
         await db.commit()
         return {"success": True, "message": "Group deleted successfully"}
     except Exception as e:
