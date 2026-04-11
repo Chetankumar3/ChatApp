@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     # Inject dummy environment variables so the app boots successfully in CI
     env:
-      SECRET_KEY: "dummy-testing-secret-key"
+      JWT_SECRET: "this-is-a-super-secret-dummy-key-for-testing-only"
+      WEBCLIENT_ID: "dummy-google-client-id.apps.googleusercontent.com"
       ALGORITHM: "HS256"
       DATABASE_URL: "sqlite+aiosqlite:///./test.db" 
 
