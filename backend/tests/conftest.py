@@ -1,7 +1,3 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
 from datetime import datetime, timedelta, timezone
 import sys
 from pathlib import Path
@@ -107,7 +103,7 @@ async def authorized_client(client, db_session):
     
     yield client
 
-SECRET_KEY = os.getenv("JWT_SECRET")   # must match your app's secret
+SECRET_KEY = "dummy-testing-secret-key"   # must match your app's secret
 ALGORITHM = "HS256"
 
 @pytest_asyncio.fixture
