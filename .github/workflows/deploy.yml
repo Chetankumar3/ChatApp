@@ -15,7 +15,7 @@ jobs:
     env:
       SECRET_KEY: "dummy-testing-secret-key"
       ALGORITHM: "HS256"
-      # DB_URL: "sqlite+aiosqlite:///./test.db" 
+      DATABASE_URL: "sqlite+aiosqlite:///./test.db" 
 
     steps:
       - name: Checkout Code
