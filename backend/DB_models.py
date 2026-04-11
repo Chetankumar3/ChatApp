@@ -29,7 +29,7 @@ class passwords(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True, unique=True)
     username: Mapped[str] = mapped_column(String(20), unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(128))
+    hashedPassword: Mapped[str] = mapped_column(String(128))
 
 class group(Base):
     __tablename__ = "group"
@@ -43,7 +43,7 @@ class mapTable(Base):
     __tablename__ = "map_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    admin: Mapped[bool] = mapped_column() # true for "admin", false for "member"
+    admin: Mapped[bool] = mapped_column(default=False) # true for "admin", false for "member"
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     groupId: Mapped[int] = mapped_column(ForeignKey("group.id"), index=True)
 

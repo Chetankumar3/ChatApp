@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-import DB_models
+import DB_models, models
 from database import get_db
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -13,28 +13,15 @@ from fastapi import Depends
 from google.auth.transport import requests
 from pydantic import BaseModel
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import bcrypt
 
 WEBCLIENT_ID = os.getenv("WEBCLIENT_ID")
 JWT_SECRET = os.getenv("JWT_SECRET")
 router = APIRouter()
 
-class LoginCredentials(BaseModel):
-    username: str
-    password: str
-
-class RegisterCredentials(BaseModel):
-    username: str
-    password: str
-    name: str
-    email: str
-
-class GoogleTokenData(BaseModel):
-    token: str
-
 def create_jwt_token(user_id: int):
-    expire = datetime.utcnow() + timedelta(hours=2)
+    expire = datetime.now(timezone.utc) + timedelta(hours=2)
     to_encode = {"user_id": user_id, "exp": expire}
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm="HS256")
     return encoded_jwt
@@ -61,7 +48,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
     return user
 
 @router.post("/login/google")
-async def google_login(data: GoogleTokenData, db: Session = Depends(get_db)):
+async def google_login(data: models.GoogleTokenData, db: Session = Depends(get_db)):
     IdInfo = None
     try:
         IdInfo = await asyncio.to_thread(
@@ -110,10 +97,11 @@ async def google_login(data: GoogleTokenData, db: Session = Depends(get_db)):
         token = create_jwt_token(user_id)
         return {"token": token, "isNewUser": False}
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login/credentials")
-async def credentials_login(data: LoginCredentials, db: Session = Depends(get_db)):
+async def credentials_login(data: models.LoginCredentials, db: Session = Depends(get_db)):
     try:
         # Find user by username
         password_entry = await db.execute(
@@ -125,16 +113,17 @@ async def credentials_login(data: LoginCredentials, db: Session = Depends(get_db
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         # Verify password
-        if not bcrypt.checkpw(data.password.encode('utf-8'), password_entry.hashed_password.encode('utf-8')):
+        if not bcrypt.checkpw(data.password.encode('utf-8'), password_entry.hashedPassword.encode('utf-8')):
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         token = create_jwt_token(password_entry.userId)
         return {"token": token, "isNewUser": False}
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/recruiter/register")
-async def recruiter_register(data: RegisterCredentials, db: Session = Depends(get_db)):
+async def recruiter_register(data: models.RegisterCredentials, db: Session = Depends(get_db)):
     try:
         existing = await db.execute(
             select(DB_models.passwords).where(DB_models.passwords.username == data.username)
@@ -156,7 +145,7 @@ async def recruiter_register(data: RegisterCredentials, db: Session = Depends(ge
         password_ = DB_models.passwords(
             userId=user_.id,
             username=data.username,
-            hashed_password=hashed.decode('utf-8')
+            hashedPassword=hashed.decode('utf-8')
         )
         db.add(password_)
         await db.commit()
@@ -164,10 +153,11 @@ async def recruiter_register(data: RegisterCredentials, db: Session = Depends(ge
         token = create_jwt_token(user_.id)
         return {"token": token, "isNewUser": False}
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/register")
-async def register(data: RegisterCredentials, db: Session = Depends(get_db)):
+async def register(data: models.RegisterCredentials, db: Session = Depends(get_db)):
     try:
         # Check if username exists
         existing = await db.execute(
@@ -193,7 +183,7 @@ async def register(data: RegisterCredentials, db: Session = Depends(get_db)):
         password_ = DB_models.passwords(
             userId=user_.id,
             username=data.username,
-            hashed_password=hashed.decode('utf-8')
+            hashedPassword=hashed.decode('utf-8')
         )
         db.add(password_)
         await db.commit()
@@ -201,4 +191,5 @@ async def register(data: RegisterCredentials, db: Session = Depends(get_db)):
         token = create_jwt_token(user_.id)
         return {"token": token, "isNewUser": False}
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

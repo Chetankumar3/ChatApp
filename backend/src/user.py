@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from collections import defaultdict
 import DB_models, models
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update, or_
@@ -56,17 +56,15 @@ async def get_all_conversations(userId: int, current_user = Depends(get_current_
 
         # get all group messages
         group_messages = await db.scalars(
-            select(DB_models.message)
-            .where(DB_models.message.toId.in_(group_ids))
-            .order_by(DB_models.message.toId, DB_models.message.sentAt)
+            select(DB_models.groupMessage)
+            .where(DB_models.groupMessage.toId.in_(group_ids))
+            .order_by(DB_models.groupMessage.toId, DB_models.groupMessage.sentAt)
         )
         group_messages = group_messages.all()
 
         # format group messages by group id
-        formatted_group_messages = {}
+        formatted_group_messages = defaultdict(list)
         for message in group_messages:
-            if message.toId not in formatted_group_messages:
-                formatted_group_messages[message.toId] = []
             formatted_group_messages[message.toId].append(message)
 
         # get message receipts of messages sent by the user in associated_groups
@@ -108,11 +106,10 @@ async def get_user_info(userId: int, current_user = Depends(get_current_user), d
         raise HTTPException(status_code=500, detail=str(e))
  
 
-class UsernameUpdateRequest(BaseModel):
-    newUsername: str
+
 
 @router.post("/change_username/{userId}")
-async def change_username(userId: int, data: UsernameUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+async def change_username(userId: int, data: models.UsernameUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         await db.execute(
             update(DB_models.user)
@@ -121,4 +118,5 @@ async def change_username(userId: int, data: UsernameUpdateRequest, current_user
         )
         await db.commit()
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
