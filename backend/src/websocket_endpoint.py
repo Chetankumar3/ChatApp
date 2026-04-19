@@ -1,23 +1,22 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy import select
-from database import AsyncSessionLocal, engine, get_db
+from database import AsyncSessionLocal
 import DB_models
 from .connection_manager import manager
+from .login import get_current_websocket_user
 import asyncio
 from datetime import datetime
 
 router = APIRouter()
 
-@router.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket_: WebSocket, user_id: int):
-    user_exists = False
-    async with AsyncSessionLocal() as db:
-        user_exists = await db.scalar(
-            select(DB_models.user.id)
-            .where(DB_models.user.id == user_id)
-        )
 
-    if not user_exists:
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(
+    websocket_: WebSocket,
+    user_id: int,
+    current_user=Depends(get_current_websocket_user),
+):
+    if current_user.id != user_id:
         await websocket_.close(code=1008)
         return
 
@@ -34,7 +33,9 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                         fromId=data["fromId"],
                         toId=data["toId"],
                         body=data["body"],
-                        sentAt=datetime.fromisoformat(data["sentAt"].replace("Z", "+00:00"))
+                        sentAt=datetime.fromisoformat(
+                            data["sentAt"].replace("Z", "+00:00")
+                        ),
                     )
                     db.add(DBMessage)
                     await db.commit()
@@ -43,30 +44,36 @@ async def websocket_endpoint(websocket_: WebSocket, user_id: int):
                         fromId=data["fromId"],
                         toId=data["toId"],
                         body=data["body"],
-                        sentAt=datetime.fromisoformat(data["sentAt"].replace("Z", "+00:00"))
+                        sentAt=datetime.fromisoformat(
+                            data["sentAt"].replace("Z", "+00:00")
+                        ),
                     )
                     db.add(DBGroupMessage)
                     await db.flush()
                     await db.refresh(DBGroupMessage)
 
                     group_users = await db.scalars(
-                        select(DB_models.mapTable.userId)
-                        .where(DB_models.mapTable.groupId == data["toId"])
+                        select(DB_models.mapTable.userId).where(
+                            DB_models.mapTable.groupId == data["toId"]
+                        )
                     )
                     group_users = group_users.all()
 
                     message_receipts = [
                         DB_models.messageReceipt(
-                            groupMessageId=DBGroupMessage.id,
-                            userId=u
-                        ) for u in group_users]
+                            groupMessageId=DBGroupMessage.id, userId=u
+                        )
+                        for u in group_users
+                    ]
 
                     db.add_all(message_receipts)
 
                     current_user_receipt = DB_models.messageReceipt(
                         groupMessageId=DBGroupMessage.id,
                         userId=data["fromId"],
-                        receivedAt=datetime.fromisoformat(data["sentAt"].replace("Z", "+00:00"))
+                        receivedAt=datetime.fromisoformat(
+                            data["sentAt"].replace("Z", "+00:00")
+                        ),
                     )
                     db.merge(current_user_receipt)
                     await db.commit()

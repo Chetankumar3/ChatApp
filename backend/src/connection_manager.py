@@ -1,6 +1,7 @@
 from fastapi import WebSocket
 import models
 
+
 class connectionManager:
     def __init__(self):
         self.active_connections: dict[int, WebSocket] = {}
@@ -17,4 +18,4 @@ class connectionManager:
             await self.active_connections[toId].send_json(data)
 
 
-manager = connectionManager()  
+manager = connectionManager()

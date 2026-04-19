@@ -1,14 +1,16 @@
 from pydantic import BaseModel
 from typing import Optional
 
+
 class message(BaseModel):
     id: int
-    type: str # "direct_message" or "group_message"
+    type: str  # "direct_message" or "group_message"
     fromId: int
     toId: int
     message: str
     sentAt: str
     receivedAt: Optional[str] = None
+
 
 class user(BaseModel):
     id: int
@@ -17,7 +19,8 @@ class user(BaseModel):
     mobileNumber: Optional[str] = None
     email: Optional[str] = None
     displayPictureUrl: Optional[str] = None
-    
+
+
 class group(BaseModel):
     id: int
     name: str
@@ -27,10 +30,12 @@ class group(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
 # Login models
 class LoginCredentials(BaseModel):
     username: str
     password: str
+
 
 class RegisterCredentials(BaseModel):
     username: str
@@ -38,8 +43,10 @@ class RegisterCredentials(BaseModel):
     name: str
     email: str
 
+
 class GoogleTokenData(BaseModel):
     token: str
+
 
 # Group models
 class groupCreationInput(BaseModel):
@@ -49,9 +56,11 @@ class groupCreationInput(BaseModel):
     displayPictureUrl: Optional[str] = None
     members: Optional[list[int]] = None
 
+
 class groupCreationOutput(BaseModel):
     message: str
     groupId: int
+
 
 class groupUpdationInput(BaseModel):
     name: Optional[str] = None
@@ -59,9 +68,11 @@ class groupUpdationInput(BaseModel):
     displayPictureUrl: Optional[str] = None
     members: Optional[list[int]] = None
 
+
 class APIResponse(BaseModel):
     success: bool
     message: str
+
 
 # User models
 class UsernameUpdateRequest(BaseModel):

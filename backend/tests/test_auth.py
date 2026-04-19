@@ -11,6 +11,7 @@ protected routes reject bad or absent credentials. ``GET /get_all_users``
 is used as a stable probe because it is protected by ``get_current_user``
 and has no side-effects.
 """
+
 from __future__ import annotations
 
 import bcrypt
@@ -25,6 +26,7 @@ import DB_models
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 async def _seed_credentials_user(
     db_session: AsyncSession,
     *,
@@ -37,27 +39,37 @@ async def _seed_credentials_user(
     email = email or f"{username}@test.com"
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     user = DB_models.user(
-        name=name, email=email, username=username,
+        name=name,
+        email=email,
+        username=username,
         displayPictureUrl=f"http://example.com/{username}.png",
     )
     db_session.add(user)
     await db_session.flush()
     await db_session.refresh(user)
-    db_session.add(DB_models.passwords(
-        userId=user.id, username=username, hashedPassword=hashed,
-    ))
+    db_session.add(
+        DB_models.passwords(
+            userId=user.id,
+            username=username,
+            hashedPassword=hashed,
+        )
+    )
     await db_session.commit()
     return user
 
 
 # ── POST /login/credentials ───────────────────────────────────────────────────
 
-class TestCredentialsLogin:
 
+class TestCredentialsLogin:
     async def test_valid_credentials_return_token_and_is_new_user_false(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
-        await _seed_credentials_user(db_session, username="alice_login", password="s3cr3t")
+        await _seed_credentials_user(
+            db_session, username="alice_login", password="s3cr3t"
+        )
 
         resp = await client.post(
             "/login/credentials",
@@ -71,9 +83,13 @@ class TestCredentialsLogin:
         assert body["isNewUser"] is False
 
     async def test_wrong_password_is_rejected(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
-        await _seed_credentials_user(db_session, username="alice_wp", password="correct")
+        await _seed_credentials_user(
+            db_session, username="alice_wp", password="correct"
+        )
 
         resp = await client.post(
             "/login/credentials",
@@ -83,7 +99,8 @@ class TestCredentialsLogin:
         assert resp.status_code >= 400
 
     async def test_nonexistent_username_is_rejected(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.post(
             "/login/credentials",
@@ -93,14 +110,16 @@ class TestCredentialsLogin:
         assert resp.status_code >= 400
 
     async def test_missing_password_field_returns_422(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.post("/login/credentials", json={"username": "only"})
 
         assert resp.status_code == 422
 
     async def test_empty_username_is_rejected(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.post(
             "/login/credentials",
@@ -112,16 +131,19 @@ class TestCredentialsLogin:
 
 # ── POST /recruiter/register ──────────────────────────────────────────────────
 
-class TestRecruiterRegister:
 
+class TestRecruiterRegister:
     async def test_new_recruiter_receives_token_and_is_new_user_false(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.post(
             "/recruiter/register",
             json={
-                "username": "rec1", "password": "pass123",
-                "name": "Recruiter One", "email": "rec1@test.com",
+                "username": "rec1",
+                "password": "pass123",
+                "name": "Recruiter One",
+                "email": "rec1@test.com",
             },
         )
 
@@ -132,22 +154,27 @@ class TestRecruiterRegister:
         assert body["isNewUser"] is False
 
     async def test_duplicate_username_is_rejected(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         await _seed_credentials_user(db_session, username="taken_rec", password="p")
 
         resp = await client.post(
             "/recruiter/register",
             json={
-                "username": "taken_rec", "password": "other",
-                "name": "Dupe", "email": "dupe@test.com",
+                "username": "taken_rec",
+                "password": "other",
+                "name": "Dupe",
+                "email": "dupe@test.com",
             },
         )
 
         assert resp.status_code >= 400
 
     async def test_missing_required_fields_return_422(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         # name and email are required by RegisterCredentials
         resp = await client.post(
@@ -158,11 +185,14 @@ class TestRecruiterRegister:
         assert resp.status_code == 422
 
     async def test_registered_recruiter_can_then_log_in(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         creds = {
-            "username": "rec_roundtrip", "password": "mypass",
-            "name": "RT Rec", "email": "rt@test.com",
+            "username": "rec_roundtrip",
+            "password": "mypass",
+            "name": "RT Rec",
+            "email": "rt@test.com",
         }
         reg = await client.post("/recruiter/register", json=creds)
         assert reg.status_code == 200
@@ -176,14 +206,17 @@ class TestRecruiterRegister:
         assert "token" in login.json()
 
     async def test_two_distinct_usernames_both_succeed(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         for tag in ("alpha", "beta"):
             resp = await client.post(
                 "/recruiter/register",
                 json={
-                    "username": f"rec_{tag}", "password": "p",
-                    "name": tag.title(), "email": f"{tag}@test.com",
+                    "username": f"rec_{tag}",
+                    "password": "p",
+                    "name": tag.title(),
+                    "email": f"{tag}@test.com",
                 },
             )
             assert resp.status_code == 200, f"failed for tag={tag!r}"
@@ -191,14 +224,16 @@ class TestRecruiterRegister:
 
 # ── POST /register ────────────────────────────────────────────────────────────
 
-class TestRegister:
 
+class TestRegister:
     async def test_new_user_receives_token(self, client: AsyncClient) -> None:
         resp = await client.post(
             "/register",
             json={
-                "username": "newuser", "password": "pass",
-                "name": "New User", "email": "new@test.com",
+                "username": "newuser",
+                "password": "pass",
+                "name": "New User",
+                "email": "new@test.com",
             },
         )
 
@@ -206,22 +241,27 @@ class TestRegister:
         assert "token" in resp.json()
 
     async def test_duplicate_username_is_rejected(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         await _seed_credentials_user(db_session, username="taken_user", password="p")
 
         resp = await client.post(
             "/register",
             json={
-                "username": "taken_user", "password": "other",
-                "name": "Dup", "email": "dup@test.com",
+                "username": "taken_user",
+                "password": "other",
+                "name": "Dup",
+                "email": "dup@test.com",
             },
         )
 
         assert resp.status_code >= 400
 
     async def test_missing_required_fields_return_422(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.post(
             "/register",
@@ -231,11 +271,14 @@ class TestRegister:
         assert resp.status_code == 422
 
     async def test_registered_user_can_then_log_in(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         creds = {
-            "username": "user_rt", "password": "rtpass",
-            "name": "RT User", "email": "rt@test.com",
+            "username": "user_rt",
+            "password": "rtpass",
+            "name": "RT User",
+            "email": "rt@test.com",
         }
         reg = await client.post("/register", json=creds)
         assert reg.status_code == 200
@@ -251,32 +294,41 @@ class TestRegister:
 
 # ── JWT gating ────────────────────────────────────────────────────────────────
 
+
 class TestJWTGating:
     """Every test uses bare ``client`` (no Authorization header)."""
 
     PROBE = "/get_all_users"
 
     async def test_no_authorization_header_returns_401(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.get(self.PROBE)
 
         assert resp.status_code == 401
 
     async def test_malformed_bearer_value_returns_401(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.get(
-            self.PROBE, headers={"Authorization": "Bearer not.a.real.jwt"},
+            self.PROBE,
+            headers={"Authorization": "Bearer not.a.real.jwt"},
         )
 
         assert resp.status_code == 401
 
     async def test_expired_token_returns_401(
-        self, expired_token, client: AsyncClient, db_session: AsyncSession,
+        self,
+        expired_token,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         user = DB_models.user(
-            name="Exp User", email="exp@test.com", username="expuser",
+            name="Exp User",
+            email="exp@test.com",
+            username="expuser",
             displayPictureUrl="http://example.com/exp.png",
         )
         db_session.add(user)
@@ -291,10 +343,15 @@ class TestJWTGating:
         assert resp.status_code == 401
 
     async def test_token_signed_with_wrong_secret_returns_401(
-            self, make_token, client: AsyncClient, db_session: AsyncSession,
+        self,
+        make_token,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         user = DB_models.user(
-            name="Sec User", email="sec@test.com", username="secuser",
+            name="Sec User",
+            email="sec@test.com",
+            username="secuser",
             displayPictureUrl="http://example.com/sec.png",
         )
         db_session.add(user)
@@ -302,7 +359,10 @@ class TestJWTGating:
         await db_session.refresh(user)
 
         bad_token = pyjwt.encode(
-            {"user_id": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+            {
+                "user_id": user.id,
+                "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+            },
             key="wrong-secret",
             algorithm="HS256",
         )
@@ -314,7 +374,9 @@ class TestJWTGating:
         assert resp.status_code == 401
 
     async def test_valid_token_for_nonexistent_user_returns_401(
-        self, make_token, client: AsyncClient,
+        self,
+        make_token,
+        client: AsyncClient,
     ) -> None:
         # Structurally valid JWT but user_id 999999 is not in the DB
         token = make_token(user_id=999_999)
@@ -326,10 +388,15 @@ class TestJWTGating:
         assert resp.status_code == 401
 
     async def test_missing_bearer_prefix_returns_401(
-        self, make_token, client: AsyncClient, db_session: AsyncSession,
+        self,
+        make_token,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         user = DB_models.user(
-            name="Pre User", email="pre@test.com", username="preuser",
+            name="Pre User",
+            email="pre@test.com",
+            username="preuser",
             displayPictureUrl="http://example.com/pre.png",
         )
         db_session.add(user)
