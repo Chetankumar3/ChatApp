@@ -1,8 +1,8 @@
 # Ping ⚡
 
-> A production-ready real-time chat application, built phase by phase — to genuinely understand what happens when systems need to scale.
+> A production-ready real-time chat application, built phase by phase — to understand what happens when systems need to scale.
 
-This isn't just a chat app. It's a deliberate exercise in **High Level System Design**, **concurrency**, and **multi-threading** — built with the goal of watching each architectural decision either hold up or crack under real load.
+It's a deliberate exercise in **High Level System Design**, **concurrency**, and **multi-threading** — built with the goal of watching each architectural decision either hold up or break.
 
 **Live Demo:** [16.112.64.12.nip.io/chatapp/](http://16.112.64.12.nip.io/chatapp/) — or hit the API directly at `/chatapp/api/login/credentials`
 
