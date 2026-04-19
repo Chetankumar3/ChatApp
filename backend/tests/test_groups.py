@@ -23,6 +23,7 @@ Endpoint coverage
   DELETE /groups/exit/{group_id}/{user_id}
   DELETE /groups/delete/{modifier_id}/{group_id}
 """
+
 from __future__ import annotations
 
 from httpx import AsyncClient
@@ -32,6 +33,7 @@ import DB_models
 
 
 # ── inline seeding helpers ────────────────────────────────────────────────────
+
 
 async def _make_user(
     db_session: AsyncSession,
@@ -65,7 +67,7 @@ async def _make_group(
     await db_session.refresh(g)
 
     db_session.add(DB_models.mapTable(groupId=g.id, userId=admin.id, admin=True))
-    for m in (members or []):
+    for m in members or []:
         db_session.add(DB_models.mapTable(groupId=g.id, userId=m.id, admin=False))
 
     await db_session.commit()
@@ -75,8 +77,8 @@ async def _make_group(
 
 # ── PUT /groups/create/{creator_id} ──────────────────────────────────────────
 
-class TestCreateGroup:
 
+class TestCreateGroup:
     async def test_returns_200_with_group_id(
         self,
         authorized_client: AsyncClient,
@@ -177,8 +179,8 @@ class TestCreateGroup:
 
 # ── GET /groups/get_group_info/{group_id} ─────────────────────────────────────
 
-class TestGetGroupInfo:
 
+class TestGetGroupInfo:
     async def test_returns_correct_name_and_description(
         self,
         authorized_client: AsyncClient,
@@ -186,7 +188,10 @@ class TestGetGroupInfo:
         db_session: AsyncSession,
     ) -> None:
         group = await _make_group(
-            db_session, admin=user_a, name="Alpha", description="Alpha desc",
+            db_session,
+            admin=user_a,
+            name="Alpha",
+            description="Alpha desc",
         )
 
         resp = await authorized_client.get(f"/groups/get_group_info/{group.id}")
@@ -235,8 +240,8 @@ class TestGetGroupInfo:
 
 # ── PUT /groups/update/{modifier_id}/{group_id} ───────────────────────────────
 
-class TestUpdateGroup:
 
+class TestUpdateGroup:
     async def test_admin_can_rename_group(
         self,
         authorized_client: AsyncClient,
@@ -332,8 +337,8 @@ class TestUpdateGroup:
 
 # ── POST /groups/add_member/{modifier_id}/{group_id} ─────────────────────────
 
-class TestAddMember:
 
+class TestAddMember:
     async def test_admin_can_add_a_new_member(
         self,
         authorized_client: AsyncClient,
@@ -376,7 +381,7 @@ class TestAddMember:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob",   username="add_bob3")
+        bob = await _make_user(db_session, name="Bob", username="add_bob3")
         carol = await _make_user(db_session, name="Carol", username="add_carol3")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
@@ -394,8 +399,8 @@ class TestAddMember:
         db_session: AsyncSession,
     ) -> None:
         outsider = await _make_user(db_session, name="Outsider", username="add_out1")
-        newbie   = await _make_user(db_session, name="Newbie",   username="add_new1")
-        group    = await _make_group(db_session, admin=user_a)
+        newbie = await _make_user(db_session, name="Newbie", username="add_new1")
+        group = await _make_group(db_session, admin=user_a)
 
         resp = await authorized_client.post(
             f"/groups/add_member/{outsider.id}/{group.id}",
@@ -426,7 +431,7 @@ class TestAddMember:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob", username="add_bob5")
+        bob = await _make_user(db_session, name="Bob", username="add_bob5")
         group = await _make_group(db_session, admin=user_a)
 
         resp = await client.post(
@@ -439,8 +444,8 @@ class TestAddMember:
 
 # ── DELETE /groups/exit/{group_id}/{user_id} ──────────────────────────────────
 
-class TestExitGroup:
 
+class TestExitGroup:
     async def test_member_can_exit_group(
         self,
         authorized_client: AsyncClient,
@@ -490,7 +495,7 @@ class TestExitGroup:
         db_session: AsyncSession,
     ) -> None:
         outsider = await _make_user(db_session, name="Outsider", username="ex_out1")
-        group    = await _make_group(db_session, admin=user_a)
+        group = await _make_group(db_session, admin=user_a)
 
         resp = await authorized_client.delete(f"/groups/exit/{group.id}/{outsider.id}")
 
@@ -514,7 +519,7 @@ class TestExitGroup:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob", username="ex_bob4")
+        bob = await _make_user(db_session, name="Bob", username="ex_bob4")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await client.delete(f"/groups/exit/{group.id}/{bob.id}")
@@ -524,8 +529,8 @@ class TestExitGroup:
 
 # ── DELETE /groups/delete/{modifier_id}/{group_id} ───────────────────────────
 
-class TestDeleteGroup:
 
+class TestDeleteGroup:
     async def test_admin_can_delete_group(
         self,
         authorized_client: AsyncClient,
@@ -558,7 +563,7 @@ class TestDeleteGroup:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob", username="del_bob1")
+        bob = await _make_user(db_session, name="Bob", username="del_bob1")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await authorized_client.delete(f"/groups/delete/{bob.id}/{group.id}")
@@ -572,7 +577,7 @@ class TestDeleteGroup:
         db_session: AsyncSession,
     ) -> None:
         outsider = await _make_user(db_session, name="Outsider", username="del_out1")
-        group    = await _make_group(db_session, admin=user_a)
+        group = await _make_group(db_session, admin=user_a)
 
         resp = await authorized_client.delete(
             f"/groups/delete/{outsider.id}/{group.id}"
@@ -585,9 +590,7 @@ class TestDeleteGroup:
         authorized_client: AsyncClient,
         user_a: DB_models.user,
     ) -> None:
-        resp = await authorized_client.delete(
-            f"/groups/delete/{user_a.id}/999999"
-        )
+        resp = await authorized_client.delete(f"/groups/delete/{user_a.id}/999999")
 
         assert resp.status_code >= 400
 
@@ -598,12 +601,14 @@ class TestDeleteGroup:
         db_session: AsyncSession,
     ) -> None:
         """Cascade: after deletion the group must not be retrievable."""
-        bob   = await _make_user(db_session, name="Bob", username="del_bob2")
+        bob = await _make_user(db_session, name="Bob", username="del_bob2")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         # Seed a group message + receipt so the cascade DELETE paths are exercised
         msg = DB_models.groupMessage(
-            fromId=user_a.id, toId=group.id, body="Hello",
+            fromId=user_a.id,
+            toId=group.id,
+            body="Hello",
         )
         db_session.add(msg)
         await db_session.flush()
@@ -634,8 +639,8 @@ class TestDeleteGroup:
 
 # ── POST /groups/remove_member/{modifier_id}/{group_id} ───────────────────────
 
-class TestRemoveMember:
 
+class TestRemoveMember:
     async def test_admin_can_remove_a_member(
         self,
         authorized_client: AsyncClient,
@@ -697,7 +702,7 @@ class TestRemoveMember:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob",   username="rm_bob4")
+        bob = await _make_user(db_session, name="Bob", username="rm_bob4")
         carol = await _make_user(db_session, name="Carol", username="rm_carol4")
         group = await _make_group(db_session, admin=user_a, members=[bob, carol])
 
@@ -709,7 +714,7 @@ class TestRemoveMember:
         assert resp.status_code == 200
         info = await authorized_client.get(f"/groups/get_group_info/{group.id}")
         member_ids = {m["id"] for m in info.json()["members"]}
-        assert bob.id   not in member_ids
+        assert bob.id not in member_ids
         assert carol.id not in member_ids
 
     async def test_non_admin_member_cannot_remove_others(
@@ -718,7 +723,7 @@ class TestRemoveMember:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob",   username="rm_bob5")
+        bob = await _make_user(db_session, name="Bob", username="rm_bob5")
         carol = await _make_user(db_session, name="Carol", username="rm_carol5")
         group = await _make_group(db_session, admin=user_a, members=[bob, carol])
 
@@ -736,8 +741,8 @@ class TestRemoveMember:
         db_session: AsyncSession,
     ) -> None:
         outsider = await _make_user(db_session, name="Outsider", username="rm_out1")
-        bob      = await _make_user(db_session, name="Bob",      username="rm_bob6")
-        group    = await _make_group(db_session, admin=user_a, members=[bob])
+        bob = await _make_user(db_session, name="Bob", username="rm_bob6")
+        group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await authorized_client.post(
             f"/groups/remove_member/{outsider.id}/{group.id}",
@@ -788,7 +793,7 @@ class TestRemoveMember:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob", username="rm_bob8")
+        bob = await _make_user(db_session, name="Bob", username="rm_bob8")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await client.post(
@@ -801,15 +806,15 @@ class TestRemoveMember:
 
 # ── POST /groups/make_admin/{modifier_id}/{group_id} ──────────────────────────
 
-class TestMakeAdmin:
 
+class TestMakeAdmin:
     async def test_admin_can_promote_a_member(
         self,
         authorized_client: AsyncClient,
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob", username="ma_bob1")
+        bob = await _make_user(db_session, name="Bob", username="ma_bob1")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await authorized_client.post(
@@ -827,7 +832,7 @@ class TestMakeAdmin:
         db_session: AsyncSession,
     ) -> None:
         """After promotion Bob must be able to rename the group."""
-        bob   = await _make_user(db_session, name="Bob", username="ma_bob2")
+        bob = await _make_user(db_session, name="Bob", username="ma_bob2")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         promote = await authorized_client.post(
@@ -848,7 +853,7 @@ class TestMakeAdmin:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob",   username="ma_bob3")
+        bob = await _make_user(db_session, name="Bob", username="ma_bob3")
         carol = await _make_user(db_session, name="Carol", username="ma_carol3")
         group = await _make_group(db_session, admin=user_a, members=[bob, carol])
 
@@ -866,8 +871,8 @@ class TestMakeAdmin:
         db_session: AsyncSession,
     ) -> None:
         outsider = await _make_user(db_session, name="Outsider", username="ma_out1")
-        bob      = await _make_user(db_session, name="Bob",      username="ma_bob4")
-        group    = await _make_group(db_session, admin=user_a, members=[bob])
+        bob = await _make_user(db_session, name="Bob", username="ma_bob4")
+        group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await authorized_client.post(
             f"/groups/make_admin/{outsider.id}/{group.id}",
@@ -883,7 +888,7 @@ class TestMakeAdmin:
         db_session: AsyncSession,
     ) -> None:
         """Promoting an existing admin again must not error — UPDATE sets admin=True on an already-True row."""
-        bob   = await _make_user(db_session, name="Bob", username="ma_bob5")
+        bob = await _make_user(db_session, name="Bob", username="ma_bob5")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         # First promotion
@@ -922,7 +927,7 @@ class TestMakeAdmin:
         user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
-        bob   = await _make_user(db_session, name="Bob", username="ma_bob7")
+        bob = await _make_user(db_session, name="Bob", username="ma_bob7")
         group = await _make_group(db_session, admin=user_a, members=[bob])
 
         resp = await client.post(

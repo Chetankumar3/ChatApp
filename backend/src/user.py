@@ -9,19 +9,26 @@ from .login import get_current_user
 
 router = APIRouter()
 
+
 @router.get("/get_all_conversations/{userId}")
-async def get_all_conversations(userId: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_all_conversations(
+    userId: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+):
     try:
         # get direct messages
         messages = await db.scalars(
             select(DB_models.message)
-            .where(or_(DB_models.message.fromId == userId, DB_models.message.toId == userId))
+            .where(
+                or_(
+                    DB_models.message.fromId == userId, DB_models.message.toId == userId
+                )
+            )
             .order_by(
-            case(
-                (DB_models.message.toId == userId, DB_models.message.fromId),
-                else_=DB_models.message.toId
-            ),
-            DB_models.message.sentAt
+                case(
+                    (DB_models.message.toId == userId, DB_models.message.fromId),
+                    else_=DB_models.message.toId,
+                ),
+                DB_models.message.sentAt,
             )
         )
         messages = messages.all()
@@ -36,21 +43,22 @@ async def get_all_conversations(userId: int, current_user = Depends(get_current_
 
         # get all assocaited users
         associated_users = await db.scalars(
-            select(DB_models.user)
-            .where(DB_models.user.id.in_(formatted_direct_messages.keys()))
+            select(DB_models.user).where(
+                DB_models.user.id.in_(formatted_direct_messages.keys())
+            )
         )
         associated_users = associated_users.all()
 
         # get group ids
         group_ids = await db.scalars(
-            select(DB_models.mapTable.groupId)
-            .where(DB_models.mapTable.userId == userId)
+            select(DB_models.mapTable.groupId).where(
+                DB_models.mapTable.userId == userId
+            )
         )
         group_ids = group_ids.all()
 
         associated_groups = await db.scalars(
-            select(DB_models.group)
-            .where(DB_models.group.id.in_(group_ids))
+            select(DB_models.group).where(DB_models.group.id.in_(group_ids))
         )
         associated_groups = associated_groups.all()
 
@@ -68,11 +76,16 @@ async def get_all_conversations(userId: int, current_user = Depends(get_current_
             formatted_group_messages[message.toId].append(message)
 
         # get message receipts of messages sent by the user in associated_groups
-        from_current_user_group_message_ids = set(m.id for m in group_messages if m.fromId == userId)
+        from_current_user_group_message_ids = set(
+            m.id for m in group_messages if m.fromId == userId
+        )
 
         message_receipts = await db.scalars(
-            select(DB_models.messageReceipt)
-            .where(DB_models.messageReceipt.groupMessageId.in_(from_current_user_group_message_ids))
+            select(DB_models.messageReceipt).where(
+                DB_models.messageReceipt.groupMessageId.in_(
+                    from_current_user_group_message_ids
+                )
+            )
         )
         message_receipts = message_receipts.all()
         message_receipts = dict((mr.groupMessageId, mr) for mr in message_receipts)
@@ -83,18 +96,23 @@ async def get_all_conversations(userId: int, current_user = Depends(get_current_
                 if m.id in message_receipts:
                     m.receipts = message_receipts[m.id]
 
-        return {"direct_messages": messages, "group_messages": formatted_group_messages, 
-                "associated_users": associated_users, "associated_groups": associated_groups}
+        return {
+            "direct_messages": messages,
+            "group_messages": formatted_group_messages,
+            "associated_users": associated_users,
+            "associated_groups": associated_groups,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/get_user_info/{userId}", response_model=models.user)
-async def get_user_info(userId: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_user_info(
+    userId: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+):
     try:
         user_info = await db.execute(
-            select(DB_models.user)
-            .where(DB_models.user.id == userId)
+            select(DB_models.user).where(DB_models.user.id == userId)
         )
         user_info = user_info.scalar_one_or_none()
 
@@ -104,12 +122,15 @@ async def get_user_info(userId: int, current_user = Depends(get_current_user), d
         return user_info
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
- 
-
 
 
 @router.post("/change_username/{userId}")
-async def change_username(userId: int, data: models.UsernameUpdateRequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+async def change_username(
+    userId: int,
+    data: models.UsernameUpdateRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         await db.execute(
             update(DB_models.user)

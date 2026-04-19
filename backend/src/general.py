@@ -7,8 +7,11 @@ from .login import get_current_user
 
 router = APIRouter()
 
+
 @router.get("/get_all_users")
-async def get_all_users(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_all_users(
+    current_user=Depends(get_current_user), db: Session = Depends(get_db)
+):
     try:
         result = await db.scalars(select(DB_models.user))
         return {"users": result.all()}

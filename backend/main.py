@@ -5,9 +5,11 @@ from database import engine
 import DB_models
 from src import login, websocket_endpoint, user, general, group
 
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(DB_models.Base.metadata.create_all)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +18,8 @@ async def lifespan(app: FastAPI):
 
     yield
     print("Shutting down gracefully...")
+
+
 app = FastAPI(lifespan=lifespan, root_path="/chatapp/api")
 
 origins = [
@@ -23,15 +27,15 @@ origins = [
     "http://localhost:5174",
     "http://localhost:3000",
     "http://16.112.64.12",
-    "http://16.112.64.12.nip.io"
+    "http://16.112.64.12.nip.io",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # Use the list instead of "*" for better security with credentials
+    allow_origins=origins,  # Use the list instead of "*" for better security with credentials
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 app.include_router(login.router, tags=["Login"])

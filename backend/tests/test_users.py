@@ -15,6 +15,7 @@ Endpoint coverage
   POST /users/change_username/{userId}
   GET  /users/get_all_conversations/{userId}
 """
+
 from __future__ import annotations
 
 from httpx import AsyncClient
@@ -25,10 +26,12 @@ import DB_models
 
 # ── GET /users/get_user_info/{userId} ─────────────────────────────────────────
 
-class TestGetUserInfo:
 
+class TestGetUserInfo:
     async def test_own_profile_returns_correct_fields(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
     ) -> None:
         resp = await authorized_client.get(f"/users/get_user_info/{user_a.id}")
 
@@ -40,10 +43,14 @@ class TestGetUserInfo:
         assert body["username"] == user_a.username
 
     async def test_other_users_profile_is_accessible(
-        self, authorized_client: AsyncClient, db_session: AsyncSession,
+        self,
+        authorized_client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         bob = DB_models.user(
-            name="Bob", email="bob@test.com", username="bob",
+            name="Bob",
+            email="bob@test.com",
+            username="bob",
             displayPictureUrl="http://example.com/bob.png",
         )
         db_session.add(bob)
@@ -57,17 +64,22 @@ class TestGetUserInfo:
         assert resp.json()["name"] == "Bob"
 
     async def test_nonexistent_user_id_returns_error(
-        self, authorized_client: AsyncClient,
+        self,
+        authorized_client: AsyncClient,
     ) -> None:
         resp = await authorized_client.get("/users/get_user_info/999999")
 
         assert resp.status_code >= 400
 
     async def test_unauthenticated_request_returns_401(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         user = DB_models.user(
-            name="Plain", email="plain@test.com", username="plain",
+            name="Plain",
+            email="plain@test.com",
+            username="plain",
             displayPictureUrl="http://example.com/plain.png",
         )
         db_session.add(user)
@@ -81,10 +93,12 @@ class TestGetUserInfo:
 
 # ── POST /users/change_username/{userId} ──────────────────────────────────────
 
-class TestChangeUsername:
 
+class TestChangeUsername:
     async def test_username_updated_successfully(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
     ) -> None:
         resp = await authorized_client.post(
             f"/users/change_username/{user_a.id}",
@@ -94,7 +108,9 @@ class TestChangeUsername:
         assert resp.status_code == 200
 
     async def test_new_username_visible_via_get_user_info(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
     ) -> None:
         new_name = "alice_v2"
         change = await authorized_client.post(
@@ -109,7 +125,9 @@ class TestChangeUsername:
         assert info.json()["username"] == new_name
 
     async def test_successive_renames_keep_only_the_latest(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
     ) -> None:
         for name in ("first", "second", "final"):
             resp = await authorized_client.post(
@@ -122,7 +140,9 @@ class TestChangeUsername:
         assert info.json()["username"] == "final"
 
     async def test_missing_new_username_field_returns_422(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
     ) -> None:
         resp = await authorized_client.post(
             f"/users/change_username/{user_a.id}",
@@ -132,10 +152,14 @@ class TestChangeUsername:
         assert resp.status_code == 422
 
     async def test_unauthenticated_request_returns_401(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         user = DB_models.user(
-            name="Plain", email="plain@test.com", username="plain",
+            name="Plain",
+            email="plain@test.com",
+            username="plain",
             displayPictureUrl="http://example.com/plain.png",
         )
         db_session.add(user)
@@ -152,10 +176,12 @@ class TestChangeUsername:
 
 # ── GET /users/get_all_conversations/{userId} ─────────────────────────────────
 
-class TestGetAllConversations:
 
+class TestGetAllConversations:
     async def test_user_with_no_activity_gets_empty_response(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
     ) -> None:
         resp = await authorized_client.get(
             f"/users/get_all_conversations/{user_a.id}",
@@ -167,22 +193,28 @@ class TestGetAllConversations:
         assert body["associated_groups"] == []
 
     async def test_sent_and_received_direct_messages_are_returned(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
         bob = DB_models.user(
-            name="Bob", email="bob@test.com", username="bob",
+            name="Bob",
+            email="bob@test.com",
+            username="bob",
             displayPictureUrl="http://example.com/bob.png",
         )
         db_session.add(bob)
         await db_session.flush()
         await db_session.refresh(bob)
 
-        db_session.add_all([
-            DB_models.message(fromId=user_a.id, toId=bob.id, body="Hey Bob!"),
-            DB_models.message(fromId=bob.id, toId=user_a.id, body="Hey Alice!"),
-            DB_models.message(fromId=user_a.id, toId=bob.id, body="How are you?"),
-        ])
+        db_session.add_all(
+            [
+                DB_models.message(fromId=user_a.id, toId=bob.id, body="Hey Bob!"),
+                DB_models.message(fromId=bob.id, toId=user_a.id, body="Hey Alice!"),
+                DB_models.message(fromId=user_a.id, toId=bob.id, body="How are you?"),
+            ]
+        )
         await db_session.commit()
 
         resp = await authorized_client.get(
@@ -193,11 +225,15 @@ class TestGetAllConversations:
         assert len(resp.json()["direct_messages"]) == 3
 
     async def test_dm_partner_is_listed_in_associated_users(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
         bob = DB_models.user(
-            name="Bob", email="bob@test.com", username="bob",
+            name="Bob",
+            email="bob@test.com",
+            username="bob",
             displayPictureUrl="http://example.com/bob.png",
         )
         db_session.add(bob)
@@ -216,7 +252,9 @@ class TestGetAllConversations:
         assert bob.id in partner_ids
 
     async def test_group_membership_appears_in_associated_groups(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
         group = DB_models.group(name="Chat Group", description="A test group")
@@ -224,9 +262,13 @@ class TestGetAllConversations:
         await db_session.flush()
         await db_session.refresh(group)
 
-        db_session.add(DB_models.mapTable(
-            groupId=group.id, userId=user_a.id, admin=True,
-        ))
+        db_session.add(
+            DB_models.mapTable(
+                groupId=group.id,
+                userId=user_a.id,
+                admin=True,
+            )
+        )
         await db_session.commit()
 
         resp = await authorized_client.get(
@@ -238,7 +280,9 @@ class TestGetAllConversations:
         assert group.id in group_ids
 
     async def test_group_messages_keyed_by_group_id_in_response(
-        self, authorized_client: AsyncClient, user_a: DB_models.user,
+        self,
+        authorized_client: AsyncClient,
+        user_a: DB_models.user,
         db_session: AsyncSession,
     ) -> None:
         group = DB_models.group(name="Msg Group", description="desc")
@@ -246,13 +290,21 @@ class TestGetAllConversations:
         await db_session.flush()
         await db_session.refresh(group)
 
-        db_session.add(DB_models.mapTable(groupId=group.id, userId=user_a.id, admin=True))
+        db_session.add(
+            DB_models.mapTable(groupId=group.id, userId=user_a.id, admin=True)
+        )
         await db_session.flush()
 
-        db_session.add_all([
-            DB_models.groupMessage(fromId=user_a.id, toId=group.id, body="Hello group"),
-            DB_models.groupMessage(fromId=user_a.id, toId=group.id, body="Anyone there?"),
-        ])
+        db_session.add_all(
+            [
+                DB_models.groupMessage(
+                    fromId=user_a.id, toId=group.id, body="Hello group"
+                ),
+                DB_models.groupMessage(
+                    fromId=user_a.id, toId=group.id, body="Anyone there?"
+                ),
+            ]
+        )
         await db_session.commit()
 
         resp = await authorized_client.get(
@@ -265,10 +317,14 @@ class TestGetAllConversations:
         assert len(group_msgs[str(group.id)]) == 2
 
     async def test_unauthenticated_request_returns_401(
-        self, client: AsyncClient, db_session: AsyncSession,
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
     ) -> None:
         user = DB_models.user(
-            name="Plain", email="plain@test.com", username="plain",
+            name="Plain",
+            email="plain@test.com",
+            username="plain",
             displayPictureUrl="http://example.com/plain.png",
         )
         db_session.add(user)
