@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+from sqlalchemy import NullPool
+load_dotenv()
 from datetime import datetime, timedelta, timezone
 import sys
 from pathlib import Path
@@ -21,10 +25,12 @@ import DB_models
 from src.login import create_jwt_token
 
 # CRITICAL: Must use sqlite+aiosqlite://
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(
-    TEST_DATABASE_URL, connect_args={"check_same_thread": False}
+    DATABASE_URL,
+    poolclass=NullPool,
+    echo=False
 )
 
 
@@ -89,7 +95,6 @@ async def authorized_client(client, db_session):
     hashed = bcrypt.hashpw("testpassword123".encode("utf-8"), bcrypt.gensalt())
     test_password = DB_models.passwords(
         userId=test_user.id,
-        username=test_user.username,
         hashedPassword=hashed.decode("utf-8"),
     )
     db_session.add(test_password)

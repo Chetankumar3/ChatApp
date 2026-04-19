@@ -11,12 +11,29 @@ jobs:
   # ---------------------------------------------------
   test:
     runs-on: ubuntu-latest
-    # Inject dummy environment variables so the app boots successfully in CI
+    
+    # Spin up an isolated Postgres container for the test suite
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: ping_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Inject environment variables (now pointing to the Postgres container)
     env:
       JWT_SECRET: "this-is-a-super-secret-dummy-key-for-testing-only"
       WEBCLIENT_ID: "dummy-google-client-id.apps.googleusercontent.com"
       ALGORITHM: "HS256"
-      DATABASE_URL: "sqlite+aiosqlite:///./test.db" 
+      DATABASE_URL: "postgresql+asyncpg://test_user:test_password@localhost:5432/TE" 
 
     steps:
       - name: Checkout Code
@@ -32,6 +49,8 @@ jobs:
           python -m pip install --upgrade pip
           cd backend
           pip install -r requirements.txt
+          # Make sure asyncpg is installed for Postgres, and pytest-asyncio for tests
+          pip install asyncpg pytest pytest-asyncio
 
       - name: Run Pytest
         run: |

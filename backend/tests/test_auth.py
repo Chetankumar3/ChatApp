@@ -3,7 +3,6 @@ Integration tests for public authentication endpoints and JWT gating.
 
 Public endpoints (no JWT) — all use ``client``:
   POST /login/credentials
-  POST /recruiter/register
   POST /register
 
 JWT-gating tests — use ``client`` deliberately (no token) to confirm
@@ -50,7 +49,6 @@ async def _seed_credentials_user(
     db_session.add(
         DB_models.passwords(
             userId=user.id,
-            username=username,
             hashedPassword=hashed,
         )
     )
@@ -129,7 +127,7 @@ class TestCredentialsLogin:
         assert resp.status_code >= 400
 
 
-# ── POST /recruiter/register ──────────────────────────────────────────────────
+# ── POST /register ──────────────────────────────────────────────────
 
 
 class TestRecruiterRegister:
@@ -138,11 +136,11 @@ class TestRecruiterRegister:
         client: AsyncClient,
     ) -> None:
         resp = await client.post(
-            "/recruiter/register",
+            "/register",
             json={
                 "username": "rec1",
                 "password": "pass123",
-                "name": "Recruiter One",
+                "name": "User One",
                 "email": "rec1@test.com",
             },
         )
@@ -161,7 +159,7 @@ class TestRecruiterRegister:
         await _seed_credentials_user(db_session, username="taken_rec", password="p")
 
         resp = await client.post(
-            "/recruiter/register",
+            "/register",
             json={
                 "username": "taken_rec",
                 "password": "other",
@@ -178,23 +176,23 @@ class TestRecruiterRegister:
     ) -> None:
         # name and email are required by RegisterCredentials
         resp = await client.post(
-            "/recruiter/register",
+            "/register",
             json={"username": "x", "password": "x"},
         )
 
         assert resp.status_code == 422
 
-    async def test_registered_recruiter_can_then_log_in(
+    async def test_registered_user_can_then_log_in(
         self,
         client: AsyncClient,
     ) -> None:
         creds = {
-            "username": "rec_roundtrip",
+            "username": "user_roundtrip",
             "password": "mypass",
             "name": "RT Rec",
             "email": "rt@test.com",
         }
-        reg = await client.post("/recruiter/register", json=creds)
+        reg = await client.post("/register", json=creds)
         assert reg.status_code == 200
 
         login = await client.post(
@@ -211,9 +209,9 @@ class TestRecruiterRegister:
     ) -> None:
         for tag in ("alpha", "beta"):
             resp = await client.post(
-                "/recruiter/register",
+                "/register",
                 json={
-                    "username": f"rec_{tag}",
+                    "username": f"user_{tag}",
                     "password": "p",
                     "name": tag.title(),
                     "email": f"{tag}@test.com",

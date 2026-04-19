@@ -11,9 +11,7 @@ class user(Base):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(
-        String(20), unique=True, index=True, nullable=True
-    )
+    username: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(20), index=True)
     mobileNumber: Mapped[str] = mapped_column(String(15), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(30))
@@ -33,7 +31,6 @@ class passwords(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True, unique=True)
-    username: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     hashedPassword: Mapped[str] = mapped_column(String(128))
 
 
@@ -50,9 +47,7 @@ class mapTable(Base):
     __tablename__ = "map_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    admin: Mapped[bool] = mapped_column(
-        default=False
-    )  # true for "admin", false for "member"
+    admin: Mapped[bool] = mapped_column(default=False)  # true for "admin", false for "member"
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     groupId: Mapped[int] = mapped_column(ForeignKey("group.id"), index=True)
 
@@ -83,9 +78,7 @@ class messageReceipt(Base):
     __tablename__ = "message_receipt"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    groupMessageId: Mapped[int] = mapped_column(
-        ForeignKey("group_message.id"), index=True
-    )
+    groupMessageId: Mapped[int] = mapped_column(ForeignKey("group_message.id"), index=True)
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     receivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     seenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)

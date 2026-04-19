@@ -16,8 +16,8 @@ export function loginWithCredentials(username, password) {
   });
 }
 
-export function registerRecruiter(username, password, name, email) {
-  return apiFetch('/recruiter/register', {
+export function registerUser(username, password, name, email) {
+  return apiFetch('/register', {
     method: 'POST',
     body: JSON.stringify({ username, password, name, email }),
   });

@@ -12,6 +12,7 @@ backend/.venv/
 # Env files
 backend/.env
 .env
+.txt
 .env.*
 
 # Logs

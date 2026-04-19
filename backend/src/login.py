@@ -129,7 +129,9 @@ async def credentials_login(
         # Find user by username
         password_entry = await db.execute(
             select(DB_models.passwords).where(
-                DB_models.passwords.username == data.username
+                DB_models.passwords.userId == select(DB_models.user.id).where(
+                    DB_models.user.username == data.username
+                )
             )
         )
         password_entry = password_entry.scalar_one_or_none()
@@ -150,48 +152,15 @@ async def credentials_login(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/recruiter/register")
-async def recruiter_register(
-    data: models.RegisterCredentials, db: Session = Depends(get_db)
-):
-    try:
-        existing = await db.execute(
-            select(DB_models.passwords).where(
-                DB_models.passwords.username == data.username
-            )
-        )
-        if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Username already exists")
-
-        user_ = DB_models.user(name=data.name, email=data.email, username=data.username)
-        db.add(user_)
-        await db.flush()
-        await db.refresh(user_)
-
-        hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt())
-
-        password_ = DB_models.passwords(
-            userId=user_.id,
-            username=data.username,
-            hashedPassword=hashed.decode("utf-8"),
-        )
-        db.add(password_)
-        await db.commit()
-
-        token = create_jwt_token(user_.id)
-        return {"token": token, "isNewUser": False}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/register")
 async def register(data: models.RegisterCredentials, db: Session = Depends(get_db)):
     try:
         # Check if username exists
         existing = await db.execute(
             select(DB_models.passwords).where(
-                DB_models.passwords.username == data.username
+                DB_models.passwords.userId == select(DB_models.user.id).where(
+                    DB_models.user.username == data.username
+                )
             )
         )
         if existing.scalar_one_or_none():
@@ -209,7 +178,6 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
         # Create password entry
         password_ = DB_models.passwords(
             userId=user_.id,
-            username=data.username,
             hashedPassword=hashed.decode("utf-8"),
         )
         db.add(password_)

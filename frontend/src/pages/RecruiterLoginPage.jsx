@@ -66,8 +66,7 @@ export default function RecruiterLoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h1 className="text-tx-1 text-2xl font-bold tracking-tight">Recruiter Login</h1>
-            <p className="text-tx-2 text-sm mt-1">Guest Access for 2 hours session</p>
+            <h1 className="text-tx-1 text-2xl font-bold tracking-tight"> Login with Credentials </h1>
           </div>
 
           <div className="space-y-4">
@@ -147,10 +146,10 @@ export default function RecruiterLoginPage() {
                 Forgot Password?
               </button>
               <button
-                onClick={() => navigate('/recruiter/register')}
+                onClick={() => navigate('/register')}
                 className="text-accent text-sm hover:underline"
               >
-                New recruiter? Register here
+                New User? Register here
               </button>
             </div>
 

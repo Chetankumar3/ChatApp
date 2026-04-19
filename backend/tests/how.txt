@@ -1,0 +1,9 @@
+How to test
+
+- Establish system-wide connection to EC2, which will redirect to RDS: 
+ssh -i "MainEC2Key.pem" -N -L 5433:chatappdb.cnc0y4q4ad2s.ap-south-2.rds.amazonaws.com:5432 ubuntu@16.112.64.12
+
+- cd ChatApp/backend
+- pytest -v
+
+Specific function : pytest tests/file::class::func
