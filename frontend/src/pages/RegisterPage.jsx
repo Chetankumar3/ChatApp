@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { registerRecruiter } from '../api/auth.js';
+import { registerUser } from '../api/auth.js';
 import Spinner from '../components/Spinner.jsx';
 
-export default function RecruiterRegisterPage() {
+export default function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -25,7 +25,7 @@ export default function RecruiterRegisterPage() {
 
     setLoading(true);
     try {
-      const data = await registerRecruiter(username.trim(), password, name.trim(), email.trim());
+      const data = await registerUser(username.trim(), password, name.trim(), email.trim());
       await login(data.token, data.isNewUser);
       navigate('/chat');
     } catch (e) {
@@ -50,8 +50,7 @@ export default function RecruiterRegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h1 className="text-tx-1 text-2xl font-bold tracking-tight">Recruiter Register</h1>
-            <p className="text-tx-2 text-sm mt-1">Create a guest account valid for 2 hours</p>
+            <h1 className="text-tx-1 text-2xl font-bold tracking-tight">Register</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,10 +116,10 @@ export default function RecruiterRegisterPage() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/login')}
+                onClick={() => navigate('/login/credentials')}
                 className="text-accent text-sm hover:underline"
               >
-                Back to Recruiter Login
+                Back to User Login
               </button>
             </div>
           </form>

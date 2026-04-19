@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { loginWithGoogle, loginWithCredentials } from '../api/auth.js';
 import Spinner from '../components/Spinner.jsx';
 
-export default function RecruiterLoginPage() {
+export default function CredentialsLoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
