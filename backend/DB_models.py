@@ -11,10 +11,10 @@ class user(Base):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=True)
-    name: Mapped[str] = mapped_column(String(20), index=True)
+    username: Mapped[str] = mapped_column(String(25), unique=True, index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(30), index=True)
     mobileNumber: Mapped[str] = mapped_column(String(15), nullable=True)
-    email: Mapped[Optional[str]] = mapped_column(String(30))
+    email: Mapped[Optional[str]] = mapped_column(String(35))
     displayPictureUrl: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 

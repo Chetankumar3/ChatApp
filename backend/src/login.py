@@ -86,8 +86,6 @@ async def google_login(data: models.GoogleTokenData, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Authentication failed")
 
     try:
-        print(IdInfo)
-
         user_id = await db.execute(
             select(DB_models.oAuthTable.userId).where(
                 DB_models.oAuthTable.oauthId == IdInfo["sub"]
