@@ -61,6 +61,8 @@ function authHeaders(token) {
 }
 
 // ─── Setup function to register the user ────────────────────────────────────
+let username, password; // Declare globally to access in default function
+
 export function setup() {
     const suffix = randomString(12);
     const username = `vu_${suffix}`;
@@ -95,11 +97,12 @@ export function setup() {
 
     jitter();
     
-    return { username, password };
+    username = username;
+    password = password;
 }
 
 // ─── Default Function ────────────────────────────────────────────────────────
-export default function ({ username, password }) {
+export default function () {
     // ── Login ─────────────────────────────────────────────────────────────────
     const loginRes = http.post(
         `${BASE_URL}/login/credentials`,
@@ -165,6 +168,7 @@ export default function ({ username, password }) {
     check(changeRes, {
         'change_username → status 200': (r) => r.status === 200,
     });
+    username = newUsername;
 
     // Verify rename persisted
     const verifyRes = http.get(`${BASE_URL}/users/get_user_info/${userId}`, auth);

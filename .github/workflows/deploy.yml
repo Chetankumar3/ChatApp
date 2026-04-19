@@ -19,7 +19,7 @@ jobs:
         env:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: ping_test_db
+          POSTGRES_DB: ping_test_db # This itself creates Database too
         ports:
           - 5432:5432
         options: >-
@@ -33,7 +33,7 @@ jobs:
       JWT_SECRET: "this-is-a-super-secret-dummy-key-for-testing-only"
       WEBCLIENT_ID: "dummy-google-client-id.apps.googleusercontent.com"
       ALGORITHM: "HS256"
-      DATABASE_URL: "postgresql+asyncpg://test_user:test_password@localhost:5432/TE" 
+      DATABASE_URL: "postgresql+asyncpg://test_user:test_password@localhost:5432/ping_test_db" 
 
     steps:
       - name: Checkout Code

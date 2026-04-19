@@ -57,8 +57,6 @@ async def _seed_credentials_user(
 
 
 # ── POST /login/credentials ───────────────────────────────────────────────────
-
-
 class TestCredentialsLogin:
     async def test_valid_credentials_return_token_and_is_new_user_false(
         self,
