@@ -12,14 +12,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
-    # Spin up an isolated Postgres container for the test suite
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: ping_test_db # This itself creates Database too
+          POSTGRES_DB: ping_test_db 
         ports:
           - 5432:5432
         options: >-
@@ -28,7 +27,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    # Inject environment variables (now pointing to the Postgres container)
     env:
       JWT_SECRET: "this-is-a-super-secret-dummy-key-for-testing-only"
       WEBCLIENT_ID: "dummy-google-client-id.apps.googleusercontent.com"
@@ -49,7 +47,6 @@ jobs:
           python -m pip install --upgrade pip
           cd backend
           pip install -r requirements.txt
-          # Make sure asyncpg is installed for Postgres, and pytest-asyncio for tests
           pip install asyncpg pytest pytest-asyncio
 
       - name: Run Pytest
@@ -62,7 +59,7 @@ jobs:
   # ---------------------------------------------------
   deploy:
     runs-on: ubuntu-latest
-    needs: test # CRITICAL: This forces the deployment to wait for tests
+    needs: test 
 
     steps:
       - name: Deploy using SSH
@@ -72,8 +69,26 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "CI Tests Passed! Deploying to EC2..."
+            set -e  # Stop script execution if any command fails
             
+            echo "🚀 Starting Deployment Process..."
             cd /home/ubuntu/ChatApp
-            chmod +x deploy.sh
-            ./deploy.sh
+            
+            # --- BACKEND UPDATE ---
+            echo "📥 Pulling latest changes from Git..."
+            git pull origin main
+            
+            echo "⚙️ Restarting Backend Service (Gunicorn/Uvicorn)..."
+            sudo systemctl restart chatapp
+            
+            # --- FRONTEND UPDATE ---
+            echo "🏗️ Building Frontend assets..."
+            # Adjust 'frontend' to your actual directory name if it differs
+            cd frontend 
+            
+            npm install --quiet
+            npm run build
+            
+            # --- FINAL CHECK ---
+            echo "✅ Deployment Successful!"
+            sudo systemctl is-active chatapp
