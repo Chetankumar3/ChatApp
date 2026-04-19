@@ -5,8 +5,8 @@ import LoginPage from './pages/LoginPage.jsx';
 import ChatPage from './pages/ChatPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SetUsernamePage from './pages/SetUsernamePage.jsx';
-import RecruiterLoginPage from './pages/RecruiterLoginPage.jsx';
-import RecruiterRegisterPage from './pages/RecruiterRegisterPage.jsx';
+import CredentialsLoginPage from './pages/CredentialsLoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 
 function ProtectedRoute({ children }) {
@@ -31,8 +31,8 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<PublicRoute><LoginPage /></PublicRoute>} />
-          <Route path="/recruiter/login" element={<PublicRoute><RecruiterLoginPage /></PublicRoute>} />
-          <Route path="/recruiter/register" element={<PublicRoute><RecruiterRegisterPage /></PublicRoute>} />
+          <Route path="/login/credentials" element={<PublicRoute><CredentialsLoginPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/set-username" element={
             <ProtectedRoute>

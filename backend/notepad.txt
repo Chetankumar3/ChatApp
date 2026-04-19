@@ -9,5 +9,6 @@ Frontend:
 - Notification
 
 Both:
+- Forgot Password
 - Change DP
  - Set mobile number (with OTP)
