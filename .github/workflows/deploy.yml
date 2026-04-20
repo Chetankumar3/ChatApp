@@ -31,7 +31,11 @@ jobs:
       JWT_SECRET: "this-is-a-super-secret-dummy-key-for-testing-only"
       WEBCLIENT_ID: "dummy-google-client-id.apps.googleusercontent.com"
       ALGORITHM: "HS256"
-      DATABASE_URL: "postgresql+asyncpg://test_user:test_password@localhost:5432/ping_test_db" 
+      DATABASE_URL: "postgresql+asyncpg://test_user:test_password@localhost:5432/ping_test_db"
+      CONNECT_ARGS={}
+      POOL_SIZE=5
+      MAX_OVERFLOW=3
+      POOL_TIMEOUT=30
 
     steps:
       - name: Checkout Code
