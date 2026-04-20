@@ -10,9 +10,10 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
-    pool_size=20,
-    max_overflow=20,
-    pool_timeout=30
+    connect_args=os.getenv("CONNECT_ARGS"),
+    pool_size=int(os.getenv("POOL_SIZE")),
+    max_overflow=int(os.getenv("MAX_OVERFLOW")),
+    pool_timeout=int(os.getenv("POOL_TIMEOUT"))
 )
 
 AsyncSessionLocal = async_sessionmaker(

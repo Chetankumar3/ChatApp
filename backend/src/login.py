@@ -162,7 +162,7 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
             )
         )
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Username already exists")
+            raise HTTPException(status_code=400, detail="User already exists, Login or Change username")
 
         # Create user
         user_ = DB_models.user(name=data.name, email=data.email, username=data.username)
