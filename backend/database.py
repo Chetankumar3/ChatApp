@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -10,7 +11,7 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args=os.getenv("CONNECT_ARGS"),
+    connect_args=json.loads(os.getenv("CONNECT_ARGS")),
     pool_size=int(os.getenv("POOL_SIZE")),
     max_overflow=int(os.getenv("MAX_OVERFLOW")),
     pool_timeout=int(os.getenv("POOL_TIMEOUT"))

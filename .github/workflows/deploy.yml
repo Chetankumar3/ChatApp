@@ -32,7 +32,7 @@ jobs:
       WEBCLIENT_ID: "dummy-google-client-id.apps.googleusercontent.com"
       ALGORITHM: "HS256"
       DATABASE_URL: "postgresql+asyncpg://test_user:test_password@localhost:5432/ping_test_db"
-      CONNECT_ARGS: {}
+      CONNECT_ARGS: "{}"
       POOL_SIZE: 5
       MAX_OVERFLOW: 3
       POOL_TIMEOUT: 30
