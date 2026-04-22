@@ -12,6 +12,7 @@ from google.auth.transport import requests
 import jwt
 from datetime import datetime, timedelta, timezone
 import bcrypt
+import secrets
 
 load_dotenv()
 WEBCLIENT_ID = os.getenv("WEBCLIENT_ID")
@@ -96,6 +97,7 @@ async def google_login(data: models.GoogleTokenData, db: Session = Depends(get_d
         if not user_id:
             user_ = DB_models.user(
                 name=IdInfo["name"],
+                username=IdInfo["name"][:4].lower() + secrets.token_hex(3)[:5],
                 email=IdInfo["email"],
                 displayPictureUrl=IdInfo.get("picture"),
             )
@@ -171,7 +173,7 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
         await db.refresh(user_)
 
         # Hash password
-        hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt())
+        hashed = await asyncio.to_thread(bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()))
 
         # Create password entry
         password_ = DB_models.passwords(
