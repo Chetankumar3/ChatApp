@@ -15,5 +15,7 @@ async def get_all_users(
     try:
         result = await db.scalars(select(DB_models.user))
         return {"users": result.all()}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

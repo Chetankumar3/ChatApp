@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update, or_
 from sqlalchemy.orm import Session
 from database import get_db
-from sqlalchemy import select, update, or_, case
+from sqlalchemy import case
 from .login import get_current_user
 
 router = APIRouter()
@@ -102,6 +102,8 @@ async def get_all_conversations(
             "associated_users": associated_users,
             "associated_groups": associated_groups,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -120,6 +122,8 @@ async def get_user_info(
             raise HTTPException(status_code=404, detail="User not found")
 
         return user_info
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -138,6 +142,8 @@ async def change_username(
             .values(username=data.newUsername)
         )
         await db.commit()
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

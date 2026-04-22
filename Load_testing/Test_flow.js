@@ -10,10 +10,15 @@ const BASE_URL = 'http://16.112.64.12.nip.io/chatapp/api';
 
 export const options = {
     stages: [
-        { duration: '3m', target: 800 },
-        { duration: '3m', target: 800 },
-        { duration: '3m', target: 0 },
+        { duration: '5s', target: 10 },
+        { duration: '5s', target: 10 },
+        { duration: '5s', target: 0 },
     ],
+    // stages: [
+    //     { duration: '3m', target: 800 },
+    //     { duration: '3m', target: 800 },
+    //     { duration: '3m', target: 0 },
+    // ],
     gracefulRampDown: '1m',
     gracefulStop: '1m',
     thresholds: {
