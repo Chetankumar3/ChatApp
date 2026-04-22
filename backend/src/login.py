@@ -140,8 +140,10 @@ async def credentials_login(
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         # Verify password
-        if not bcrypt.checkpw(
-            data.password.encode("utf-8"), password_entry.hashedPassword.encode("utf-8")
+        if not await asyncio.to_thread(
+            bcrypt.checkpw,
+            data.password.encode("utf-8"),
+            password_entry.hashedPassword.encode("utf-8")
         ):
             raise HTTPException(status_code=401, detail="Invalid username or password")
 

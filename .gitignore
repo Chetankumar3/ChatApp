@@ -15,6 +15,9 @@ backend/.env
 *.personal
 .env.*
 
+# Load testing
+Load_testing/
+
 # Logs
 *.log
 
