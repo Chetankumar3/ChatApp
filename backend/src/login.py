@@ -173,7 +173,11 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
         await db.refresh(user_)
 
         # Hash password
-        hashed = await asyncio.to_thread(bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()))
+        hashed = await asyncio.to_thread(
+            bcrypt.hashpw,
+            data.password.encode("utf-8"),
+            bcrypt.gensalt()
+        )
 
         # Create password entry
         password_ = DB_models.passwords(
