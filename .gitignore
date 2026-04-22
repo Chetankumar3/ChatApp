@@ -41,4 +41,4 @@ frontend/dist/
 # OS files
 # ----------------------
 .DS_Store
-Database.db
+*.db
