@@ -116,6 +116,8 @@ async def google_login(data: models.GoogleTokenData, db: Session = Depends(get_d
 
         token = create_jwt_token(user_id)
         return {"token": token, "isNewUser": False}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -128,11 +130,9 @@ async def credentials_login(
     try:
         # Find user by username
         password_entry = await db.execute(
-            select(DB_models.passwords).where(
-                DB_models.passwords.userId == select(DB_models.user.id).where(
-                    DB_models.user.username == data.username
-                )
-            )
+            select(DB_models.passwords).join(
+                DB_models.user, DB_models.passwords.userId == DB_models.user.id
+            ).where(DB_models.user.username == data.username)
         )
         password_entry = password_entry.scalar_one_or_none()
 
@@ -149,6 +149,8 @@ async def credentials_login(
 
         token = create_jwt_token(password_entry.userId)
         return {"token": token, "isNewUser": False}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -191,6 +193,8 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
 
         token = create_jwt_token(user_.id)
         return {"token": token, "isNewUser": False}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

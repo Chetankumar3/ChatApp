@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy import select
 from database import AsyncSessionLocal
 import DB_models
@@ -84,5 +84,7 @@ async def websocket_endpoint(
                 tasks = [manager.send_message(data, to_) for to_ in group_users]
                 await asyncio.gather(*tasks)
 
+    except HTTPException:
+        raise
     except WebSocketDisconnect:
         await manager.disconnect(user_id)

@@ -37,6 +37,8 @@ async def create_group(
         db.add_all(entries)
         await db.commit()
         return {"message": "Group created successfully", "groupId": new_group.id}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -62,6 +64,8 @@ async def get_group_info(
         )
 
         return {**group_info.__dict__, "members": members.all()}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -110,6 +114,8 @@ async def update_group(
 
         await db.commit()
         return {"success": True, "message": "Group updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -163,6 +169,8 @@ async def add_member(
         await db.commit()
 
         return {"success": True, "message": "Member added successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -218,6 +226,8 @@ async def remove_member(
         await db.commit()
 
         return {"success": True, "message": "Member removed successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -273,6 +283,8 @@ async def make_admin(
         await db.commit()
 
         return {"success": True, "message": "User promoted to admin successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -306,6 +318,8 @@ async def exit_group(
         await db.delete(user_in_group)
         await db.commit()
         return {"success": True, "message": "User exited group successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -361,6 +375,8 @@ async def delete_group(
         await db.delete(db_group)
         await db.commit()
         return {"success": True, "message": "Group deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
