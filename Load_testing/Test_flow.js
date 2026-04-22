@@ -97,7 +97,7 @@ export default function () {
     // All subsequent iterations will skip Phase 1 and jump straight here!
 
     // 1. Get All Users
-    check(http.get(`${BASE_URL}/get_all_users` /*, auth*/), {
+    check(http.get(`${BASE_URL}/get_all_users`, auth), {
         'get_all_users → status 200': (r) => r.status === 200,
     });
     jitter();
