@@ -10,8 +10,8 @@ const BASE_URL = 'http://16.112.64.12.nip.io/chatapp/api';
 
 export const options = {
     stages: [
-        { duration: '3m', target: 600 },
-        { duration: '3m', target: 600 },
+        { duration: '3m', target: 800 },
+        { duration: '3m', target: 800 },
         { duration: '3m', target: 0 },
     ],
     gracefulRampDown: '1m',
@@ -99,7 +99,7 @@ export default function () {
         token = tempToken;
         userId = payload.user_id;
         auth = authHeaders(token);
-        jitter(); // No massive sleeps needed!
+        sleep(120);
     }
 
     // ─── PHASE 2: CONTINUOUS LOAD ────────────────────────────────────────────
