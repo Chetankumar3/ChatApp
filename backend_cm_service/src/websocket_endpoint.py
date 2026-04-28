@@ -1,43 +1,103 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
-# Note: You will likely use a library like `httpx` for the async HTTP call to the Main Service
-import httpx 
+import json
+import os
+
+import grpc
+import httpx
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+import grpc_stub_pb2 as pb2
+from .state import add_connection, remove_connection
+from .cm_directory import directory
+
+from redis_service.registry import set_user_route, delete_user_route
 
 router = APIRouter()
 
-# Notice we removed the local Depends() for auth, as we are delegating it
+THIS_CM_GRPC_HOST = os.getenv("SERVICE_ADVERTISE_HOST", "127.0.0.1")
+THIS_CM_GRPC_PORT = os.getenv("SERVICE_GRPC_PORT", "50051")
+MAIN_SERVICE_HTTP = os.getenv("MAIN_SERVICE_HTTP", "http://127.0.0.1:8000")
+
+
+async def _validate_token(user_id: int, token: str) -> bool:
+    """Ask Main Service to verify the JWT and confirm it belongs to user_id."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{MAIN_SERVICE_HTTP}/internal/validate-ws",
+                json={"user_id": user_id, "token": token},
+                timeout=5.0,
+            )
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
+async def _forward_to_main(inbound: pb2.InboundMessage) -> pb2.RoutingAck:
+    """Forward an inbound message to Main Service, cycling servers on failure."""
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        result = directory.get_stub()
+        if result is None:
+            raise RuntimeError("No Main Service available in directory")
+        addr, stub = result
+        try:
+            return await stub.RouteInboundMessage(inbound, timeout=5)
+        except grpc.aio.AioRpcError as e:
+            directory.mark_failed(addr)
+            last_exc = e
+    raise last_exc or RuntimeError("All Main Service attempts failed")
+
+
 @router.websocket("/ws/{user_id}")
-async def websocket_endpoint(
-    websocket_: WebSocket,
-    user_id: int,
-):
-    # 1. Extract the authentication token from the WebSocket request 
-    #    (e.g., from query parameters, headers, or a subprotocol).
-    
-    # --- NEW: HTTP LOGIN PHASE ---
-    # 2. Open an async HTTP client (e.g., httpx.AsyncClient).
-    # 3. Make an HTTP POST/GET request to the Main Service's internal auth endpoint 
-    #    (e.g., `http://{main_service_ip}:8000/internal/validate-ws`).
-    #    Pass the token and the user_id for validation.
-    
-    # 4. Check the HTTP response:
-    #    - If 401/403 or mismatch: await websocket_.close(code=1008) and return.
-    #    - If 200 OK: Proceed to accept the connection.
-    
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
+    # --- AUTH PHASE ---
+    auth_header = websocket.headers.get("authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        await websocket.close(code=1008)
+        return
+
+    token = auth_header.split(" ", 1)[1]
+    if not await _validate_token(user_id, token):
+        await websocket.close(code=1008)
+        return
+
     # --- REGISTRATION PHASE ---
-    # 5. Accept connection: await manager.connect(websocket_, user_id) 
-    #    (Stores in shared RAM dictionary with asyncio.Lock).
-    
-    # 6. Register user routing in Redis: SET user:{user_id} "{this_cm_grpc_ip}:{this_cm_grpc_port}"
-    
+    await websocket.accept()
+    await add_connection(user_id, websocket)
+    cm_grpc_address = f"{THIS_CM_GRPC_HOST}:{THIS_CM_GRPC_PORT}"
+    await set_user_route(user_id, cm_grpc_address)
+
     try:
         while True:
-            # 7. Await inbound message from client
-            
-            # 8. Act as gRPC Client: Forward payload to the Main Service's RouteInboundMessage method
-            pass
-            
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({"type": "error", "detail": "Invalid JSON"}))
+                continue
+
+            inbound = pb2.InboundMessage(
+                fromId=user_id,
+                toId=int(msg["toId"]),
+                type=msg["type"],
+                body=msg["body"],
+                sentAt=msg["sentAt"],
+                client_uuid=msg.get("client_uuid", ""),
+            )
+
+            try:
+                ack = await _forward_to_main(inbound)
+                await websocket.send_text(json.dumps({
+                    "type": "ack",
+                    "client_uuid": msg.get("client_uuid"),
+                    "message_id": ack.message_id,
+                    "success": ack.success,
+                }))
+            except Exception as e:
+                await websocket.send_text(json.dumps({"type": "error", "detail": str(e)}))
+
     except WebSocketDisconnect:
-        # 9. Remove user from shared RAM dictionary
-        
-        # 10. Delete user routing key from Redis
         pass
+    finally:
+        await remove_connection(user_id)
+        await delete_user_route(user_id)

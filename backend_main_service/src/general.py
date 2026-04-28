@@ -1,8 +1,9 @@
-import DB_models
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from database import get_db
+
+from .. import DB_models
+from ..database import get_db
 from .login import get_current_user
 
 router = APIRouter()
@@ -10,7 +11,8 @@ router = APIRouter()
 
 @router.get("/get_all_users")
 async def get_all_users(
-    current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     try:
         result = await db.scalars(select(DB_models.user))

@@ -1,15 +1,58 @@
 import asyncio
+import os
+import sys
+
+# Make ChatApp/ root importable for redis_service
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import grpc
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ChatApp.backend_cm_service.src import websocket_endpoint
-# TODO: Import your generated gRPC classes and Servicer implementation
-# from .grpc_layer import connection_manager_pb2_grpc
-# from .grpc_layer.servicer import ConnectionManagerServicer
+from .src import websocket_endpoint
+from .src.grpc_outbound_servicer import ConnectionManagerServicer
+from .src.cm_directory import directory
 
-app = FastAPI(root_path="/chatapp/cm_service")
+import grpc_stub_pb2_grpc as pb2_grpc
+from redis_service.registry import register_service, heartbeat_loop, deregister_service
+from redis_service.client import close_redis
+
+SERVICE_GRPC_PORT = int(os.getenv("SERVICE_GRPC_PORT", "50051"))
+SERVICE_HTTP_PORT = int(os.getenv("SERVICE_HTTP_PORT", "8001"))
+SERVICE_ADVERTISE_HOST = os.getenv("SERVICE_ADVERTISE_HOST", "127.0.0.1")
+
+_service_id: str | None = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _service_id
+
+    # Load initial Main Service directory from Redis before accepting connections
+    await directory.refresh()
+    print(f"[CM] Loaded {len(directory._addresses)} Main Service address(es) from Redis")
+
+    # Register this CM instance in Redis (so Main Service can find it for heartbeats etc.)
+    advertise_addr = f"{SERVICE_ADVERTISE_HOST}:{SERVICE_GRPC_PORT}"
+    _service_id = await register_service("cm", advertise_addr)
+    print(f"[CM] Registered in Redis as {advertise_addr} (id={_service_id})")
+
+    heartbeat_task = asyncio.create_task(heartbeat_loop("cm", _service_id))
+    refresh_task = asyncio.create_task(directory.refresh_loop())
+
+    yield
+
+    heartbeat_task.cancel()
+    refresh_task.cancel()
+    if _service_id:
+        await deregister_service("cm", _service_id)
+    await close_redis()
+    print("[CM] Shut down gracefully.")
+
+
+app = FastAPI(lifespan=lifespan, root_path="/chatapp/cm_service")
 
 origins = [
     "http://localhost:5173",
@@ -31,26 +74,25 @@ app.include_router(websocket_endpoint.router)
 
 
 async def serve_fastapi():
-    # Run Uvicorn programmatically
-    config = uvicorn.Config(app, host="0.0.0.0", port=8001) # Dynamic port for Worker N
+    config = uvicorn.Config(app, host="0.0.0.0", port=SERVICE_HTTP_PORT)
     server = uvicorn.Server(config)
     await server.serve()
 
+
 async def serve_grpc():
     server = grpc.aio.server()
-    # TODO: Register your servicer
-    # connection_manager_pb2_grpc.add_ConnectionManagerServicer_to_server(ConnectionManagerServicer(), server)
-    
-    server.add_insecure_port('[::]:50051') # Dynamic port for Worker N
+    pb2_grpc.add_ConnectionManagerServicer_to_server(ConnectionManagerServicer(), server)
+    listen_addr = f"[::]:{SERVICE_GRPC_PORT}"
+    server.add_insecure_port(listen_addr)
+    print(f"[CM] gRPC server listening on {listen_addr}")
     await server.start()
     await server.wait_for_termination()
 
+
 async def main():
-    print("Booting Connection Manager: FastAPI (8001) & gRPC (50051)...")
-    await asyncio.gather(
-        serve_fastapi(),
-        serve_grpc()
-    )
+    print(f"Booting Connection Manager: FastAPI ({SERVICE_HTTP_PORT}) & gRPC ({SERVICE_GRPC_PORT})...")
+    await asyncio.gather(serve_fastapi(), serve_grpc())
+
 
 if __name__ == "__main__":
     asyncio.run(main())

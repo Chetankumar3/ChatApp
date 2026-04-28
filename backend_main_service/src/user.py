@@ -1,10 +1,11 @@
 from collections import defaultdict
-import DB_models, models
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select, update, or_
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, update, or_, case
 from sqlalchemy.orm import Session
-from database import get_db
-from sqlalchemy import case
+
+from .. import DB_models, models
+from ..database import get_db
 from .login import get_current_user
 
 router = APIRouter()
@@ -12,17 +13,14 @@ router = APIRouter()
 
 @router.get("/get_all_conversations/{userId}")
 async def get_all_conversations(
-    userId: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    userId: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     try:
-        # get direct messages
         messages = await db.scalars(
             select(DB_models.message)
-            .where(
-                or_(
-                    DB_models.message.fromId == userId, DB_models.message.toId == userId
-                )
-            )
+            .where(or_(DB_models.message.fromId == userId, DB_models.message.toId == userId))
             .order_by(
                 case(
                     (DB_models.message.toId == userId, DB_models.message.fromId),
@@ -33,27 +31,18 @@ async def get_all_conversations(
         )
         messages = messages.all()
 
-        # format direct messages
-        formatted_direct_messages = {}
-        for message in messages:
-            other_user_id = message.toId if message.fromId == userId else message.fromId
-            if other_user_id not in formatted_direct_messages:
-                formatted_direct_messages[other_user_id] = []
-            formatted_direct_messages[other_user_id].append(message)
+        formatted_direct_messages: dict = {}
+        for msg in messages:
+            other = msg.toId if msg.fromId == userId else msg.fromId
+            formatted_direct_messages.setdefault(other, []).append(msg)
 
-        # get all assocaited users
         associated_users = await db.scalars(
-            select(DB_models.user).where(
-                DB_models.user.id.in_(formatted_direct_messages.keys())
-            )
+            select(DB_models.user).where(DB_models.user.id.in_(formatted_direct_messages.keys()))
         )
         associated_users = associated_users.all()
 
-        # get group ids
         group_ids = await db.scalars(
-            select(DB_models.mapTable.groupId).where(
-                DB_models.mapTable.userId == userId
-            )
+            select(DB_models.mapTable.groupId).where(DB_models.mapTable.userId == userId)
         )
         group_ids = group_ids.all()
 
@@ -62,7 +51,6 @@ async def get_all_conversations(
         )
         associated_groups = associated_groups.all()
 
-        # get all group messages
         group_messages = await db.scalars(
             select(DB_models.groupMessage)
             .where(DB_models.groupMessage.toId.in_(group_ids))
@@ -70,31 +58,22 @@ async def get_all_conversations(
         )
         group_messages = group_messages.all()
 
-        # format group messages by group id
-        formatted_group_messages = defaultdict(list)
-        for message in group_messages:
-            formatted_group_messages[message.toId].append(message)
+        formatted_group_messages: dict = defaultdict(list)
+        for msg in group_messages:
+            formatted_group_messages[msg.toId].append(msg)
 
-        # get message receipts of messages sent by the user in associated_groups
-        from_current_user_group_message_ids = set(
-            m.id for m in group_messages if m.fromId == userId
-        )
-
+        from_user_gm_ids = {m.id for m in group_messages if m.fromId == userId}
         message_receipts = await db.scalars(
             select(DB_models.messageReceipt).where(
-                DB_models.messageReceipt.groupMessageId.in_(
-                    from_current_user_group_message_ids
-                )
+                DB_models.messageReceipt.groupMessageId.in_(from_user_gm_ids)
             )
         )
-        message_receipts = message_receipts.all()
-        message_receipts = dict((mr.groupMessageId, mr) for mr in message_receipts)
+        receipts_by_id = {mr.groupMessageId: mr for mr in message_receipts.all()}
 
-        # add message info to messages sent by this user.
-        for messages in formatted_group_messages.values():
-            for m in messages:
-                if m.id in message_receipts:
-                    m.receipts = message_receipts[m.id]
+        for msgs in formatted_group_messages.values():
+            for m in msgs:
+                if m.id in receipts_by_id:
+                    m.receipts = receipts_by_id[m.id]
 
         return {
             "direct_messages": messages,
@@ -110,17 +89,15 @@ async def get_all_conversations(
 
 @router.get("/get_user_info/{userId}", response_model=models.user)
 async def get_user_info(
-    userId: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)
+    userId: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     try:
-        user_info = await db.execute(
-            select(DB_models.user).where(DB_models.user.id == userId)
-        )
+        user_info = await db.execute(select(DB_models.user).where(DB_models.user.id == userId))
         user_info = user_info.scalar_one_or_none()
-
         if not user_info:
             raise HTTPException(status_code=404, detail="User not found")
-
         return user_info
     except HTTPException:
         raise
@@ -137,9 +114,7 @@ async def change_username(
 ):
     try:
         await db.execute(
-            update(DB_models.user)
-            .where(DB_models.user.id == userId)
-            .values(username=data.newUsername)
+            update(DB_models.user).where(DB_models.user.id == userId).values(username=data.newUsername)
         )
         await db.commit()
     except HTTPException:
