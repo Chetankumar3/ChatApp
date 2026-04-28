@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+// Implemented by the Main Service
+service MainRouter {
+    rpc RouteInboundMessage (InboundMessage) returns (RoutingAck);
+}

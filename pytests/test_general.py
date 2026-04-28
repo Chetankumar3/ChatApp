@@ -12,7 +12,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import DB_models
+import ChatApp.backend_main_service.DB_models as DB_models
 
 
 class TestGetAllUsers:

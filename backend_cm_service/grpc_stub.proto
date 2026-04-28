@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+// Implemented by the CM Service
+service ConnectionManager {
+    rpc DeliverOutboundMessage (OutboundMessage) returns (DeliveryAck);
+}

@@ -11,7 +11,7 @@ import jwt
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
-from main import app
+from ChatApp.backend_main_service.main import app
 
 import pytest_asyncio
 import bcrypt
@@ -20,9 +20,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 # 1. Import your app, DB base, and models
 # (Adjust "main" and "login" if they are inside a "routers" or "src" folder)
-from database import Base, get_db
-import DB_models
-from src.login import create_jwt_token
+from ChatApp.backend_main_service.database import Base, get_db
+import ChatApp.backend_main_service.DB_models as DB_models
+from ChatApp.backend_main_service.src.login import create_jwt_token
 
 # CRITICAL: Must use sqlite+aiosqlite://
 DATABASE_URL = os.getenv("DATABASE_URL")

@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import ForeignKey, func, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database import Base
+from ChatApp.backend_main_service.database import Base
 
 
 class user(Base):
