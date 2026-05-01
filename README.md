@@ -83,66 +83,78 @@ Instead of HTTP, the Main Service and the Connection Manager will communicate in
 
 Decoupling allows the Main Service to focus purely on database transactions and business logic, while the Connection Manager acts strictly as a dumb router managing the `epoll` event loop for open WebSockets.
 ```mermaid
-title Real-Time Message Routing Flow
-autoNumber nested
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#E3F2FD', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#fff'}}}%%
+sequenceDiagram
+    autonumber
+    participant Internet as Public Client
+    
+    box transparent "Connection Manager (Shared Process)"
+        participant CMFastAPI as CM WS (FastAPI)
+        participant CMgRPC as CM (gRPC Server)
+    end
+    
+    box transparent "Main Service"
+        participant MaingRPC as Main Service (gRPC)
+    end
+    
+    participant DB as Postgres
+    participant Redis as Redis State
 
-// Actor definitions with icons and colors
-Public Client [icon: globe, color: blue]
-Connection Manager WS [icon: monitor, color: green]
-Connection Manager gRPC [icon: server, color: green]
-Main Service gRPC [icon: server, color: orange]
-Main Service FastAPI [icon: server, color: orange]
-Redis State [icon: database, color: red]
+    Note over Internet, CMgRPC: PHASE 1: Establish Connection
+    Internet->>CMFastAPI: Connect via WebSocket (Port 8000)
+    activate CMFastAPI
+    CMFastAPI-->>CMFastAPI: Validate user token
+    CMFastAPI-->>CMFastAPI: Store socket in memory
+    deactivate CMFastAPI
 
-// PHASE 1: Establish Connection
-Public Client > Connection Manager WS: Connect via WebSocket (Port 8000)
-Connection Manager WS > Connection Manager WS: Validate user token
-Connection Manager WS > Connection Manager WS: Store socket in memory
+    Note over Internet, Redis: PHASE 2: Send Message & Routing
+    Internet->>CMFastAPI: Send message payload
+    activate CMFastAPI
+    CMFastAPI->>MaingRPC: Forward message for processing
+    deactivate CMFastAPI
+    
+    activate MaingRPC
+    MaingRPC->>DB: Save message to database
+    activate DB
+    DB-->>MaingRPC: Acknowledge save
+    deactivate DB
 
-// PHASE 2: Send Message & Routing
-Public Client > Connection Manager WS: Send message payload
-activate Connection Manager WS
-Connection Manager WS > Main Service gRPC: Forward message for processing [color: green]
-deactivate Connection Manager WS
+    MaingRPC->>DB: Query for all recipient user IDs
+    activate DB
+    DB-->>MaingRPC: Return recipient list
+    deactivate DB
 
-activate Main Service gRPC
-Main Service gRPC > Postgres: Save message to database\
-activate Postgres
-Postgres > Main Service gRPC: Acknowledge save
-deactivate Postgres
+    MaingRPC->>Redis: Get CM worker IPs for active users
+    activate Redis
+    Redis-->>MaingRPC: Return worker-to-userids mapping
+    deactivate Redis
 
-Main Service gRPC > Postgres: Query for all recipient user IDs
-activate Postgres
-Postgres > Main Service gRPC: Return recipient list
-deactivate Postgres
+    Note over MaingRPC, Internet: PHASE 3: Delivery
+    MaingRPC->>CMgRPC: Send msg to recipient's worker
+    activate CMgRPC
+    
+    par Parallel Delivery
+        CMgRPC->>Internet: Deliver msgs via FastAPI WebSocket
+    end
 
-Main Service gRPC > Redis State: get list of CM worker IP addresses for all  active users
-activate Redis State
-Redis State > Main Service gRPC: Return worker-to-userids mapping
-deactivate Redis State
-
-// PHASE 3: Delivery
-Main Service gRPC > Connection Manager gRPC: Send message to recipient's worker
-activate Connection Manager gRPC
-Connection Manager gRPC > Public Client: Deliver messages parallely via WebSocket stored by FastAPI server
-
-// PHASE 4: Error Handling
-alt [label: If delivery succeeds, icon: check] {
-  Connection Manager gRPC > Main Service gRPC: Acknowledge delivery
-}else [label: If delivery fails, icon: x] {
-  Connection Manager gRPC > Main Service gRPC: Report delivery failure
-  Main Service gRPC > Redis State: get list of CM worker IP addresses for all failed active users (this is for users who got disconnected and reconncected to some other CM worker)
-  activate Redis State
-  Redis State > Main Service gRPC: Return worker-to-userids mapping
-  deactivate Redis State
-  Main Service gRPC > Connection Manager gRPC: Send message to recipient's worker
-  Connection Manager gRPC > Public Client: Deliver messages parallely via WebSocket stored by FastAPI server
-  Connection Manager gRPC > Main Service gRPC: Acknowledge delivery
-}
-  deactivate Connection Manager gRPC
-deactivate Main Service gRPC
-```
-
+    Note over CMgRPC, MaingRPC: PHASE 4: Error Handling
+    alt Delivery Succeeds
+        CMgRPC-->>MaingRPC: Acknowledge delivery
+    else Delivery Fails
+        CMgRPC-->>MaingRPC: Report delivery failure
+        
+        Note over MaingRPC, Redis: User may have reconnected elsewhere
+        MaingRPC->>Redis: Get IPs for failed active users
+        activate Redis
+        Redis-->>MaingRPC: Return new worker mapping
+        deactivate Redis
+        
+        MaingRPC->>CMgRPC: Send msg to new worker
+        CMgRPC->>Internet: Deliver via new WebSocket
+        CMgRPC-->>MaingRPC: Acknowledge delivery
+    end
+    deactivate CMgRPC
+    deactivate MaingRPC
 ---
 
 ### Phase 3: Horizontal Scaling

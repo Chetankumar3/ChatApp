@@ -14,6 +14,7 @@ Message flow:
   Main Service → gRPC (DeliverOutboundMessage) → CM → WebSocket → User
 """
 
+import asyncio
 import json
 import os
 
@@ -86,21 +87,32 @@ async def _forward_to_main(inbound: pb2.InboundMessage) -> pb2.RoutingAck:
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int):
 
-    # ── 1. Extract token ──────────────────────────────────────────────────────
-    auth_header = websocket.headers.get("authorization", "")
-    if not auth_header.lower().startswith("bearer "):
+    # ── 1. Accept the WebSocket and wait for auth handshake ────────────────────
+    await websocket.accept()
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=5)
+    except asyncio.TimeoutError:
+        await websocket.close(code=1008)
+        return
+    except WebSocketDisconnect:
+        return
+
+    try:
+        auth_msg = json.loads(raw)
+    except json.JSONDecodeError:
         await websocket.close(code=1008)
         return
 
-    token = auth_header.split(" ", 1)[1]
+    if auth_msg.get("type") != "auth" or not isinstance(auth_msg.get("token"), str):
+        await websocket.close(code=1008)
+        return
 
-    # ── 2. Validate JWT locally ───────────────────────────────────────────────
+    token = auth_msg["token"]
     if not _validate_token(user_id, token):
         await websocket.close(code=1008)
         return
 
-    # ── 3. Accept & register ──────────────────────────────────────────────────
-    await websocket.accept()
+    # ── 2. Register after successful auth ────────────────────────────────────
     await add_connection(user_id, websocket)
 
     cm_grpc_address = f"{THIS_CM_GRPC_HOST}:{THIS_CM_GRPC_PORT}"
@@ -129,6 +141,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
             )
 
             try:
+                print("Sending to main_service...", msg)
                 ack = await _forward_to_main(inbound)
                 await websocket.send_text(json.dumps({
                     "type":        "ack",

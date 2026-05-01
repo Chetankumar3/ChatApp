@@ -13,14 +13,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 load_dotenv()
 
-# Add ChatApp/ root to sys.path so `backend_main_service` is importable as a package
+# Add ChatApp/ root to sys.path so `backend` is importable as a package
 CHATAPP_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CHATAPP_ROOT))
 
-from backend_main_service.main import app
-from backend_main_service.database import Base, get_db
-import backend_main_service.DB_models as DB_models
-from backend_main_service.src.login import create_jwt_token
+from backend.main_service.main import app
+from backend.main_service.database import Base, get_db
+from backend.main_service import DB_models
+from backend.main_service.src.login import create_jwt_token
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 

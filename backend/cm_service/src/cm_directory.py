@@ -70,7 +70,7 @@ class MainServiceDirectory:
                 return addr, self._stubs[addr]
         return None
 
-    async def refresh_loop(self, interval: int = 30) -> None:
+    async def refresh_loop(self, interval: int = 10) -> None:
         """Background coroutine: keep the directory fresh."""
         while True:
             await asyncio.sleep(interval)

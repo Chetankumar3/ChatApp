@@ -36,6 +36,8 @@ class ConnectionManagerServicer(pb2_grpc.ConnectionManagerServicer):
 
         failed: list[int] = []
 
+        print("Received from main_service:", request)
+
         for uid in request.target_user_ids:
             entry = get_connection(uid)
 

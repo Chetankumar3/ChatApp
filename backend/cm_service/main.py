@@ -1,9 +1,5 @@
 import asyncio
 import os
-import sys
-
-# Make ChatApp/ root importable for redis_service
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import grpc
 import uvicorn

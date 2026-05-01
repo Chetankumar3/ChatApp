@@ -56,7 +56,6 @@ export default function Sidebar({ onSelect }) {
       return new Date(b.lastTime) - new Date(a.lastTime);
     });
 
-    console.log(list);
     return list;
   }, [directConvs, groupConvs]);
 

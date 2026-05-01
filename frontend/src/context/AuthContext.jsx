@@ -20,6 +20,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // Restore session on mount
+  const [token, setToken] = useState(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -29,6 +31,7 @@ export function AuthProvider({ children }) {
           if (payload && payload.exp * 1000 > Date.now()) {
             const id = payload.user_id;
             setUserId(id);
+            setToken(token);
             const info = await getUserInfo(id).catch(() => null);
             setMe(info);
           } else {
@@ -46,6 +49,7 @@ export function AuthProvider({ children }) {
     const payload = decodeJWT(token);
     const id = payload.user_id;
     setUserId(id);
+    setToken(token);
     const info = await getUserInfo(id).catch(() => null);
     setMe(info);
     return { userId: id, isNewUser };
@@ -55,6 +59,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(TOKEN_KEY);
     setUserId(null);
     setMe(null);
+    setToken(null);
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -64,7 +69,7 @@ export function AuthProvider({ children }) {
   }, [userId]);
 
   return (
-    <AuthContext.Provider value={{ userId, me, login, logout, loading, refreshMe }}>
+    <AuthContext.Provider value={{ userId, me, token, login, logout, loading, refreshMe }}>
       {children}
     </AuthContext.Provider>
   );

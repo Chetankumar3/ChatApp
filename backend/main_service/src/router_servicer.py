@@ -11,8 +11,6 @@ Implements one RPC on behalf of the Main Service:
                   their new TCP handshake before we re-query Redis.
         Pass 2  - re-query Redis for users whose delivery failed, send again.
                   Failures on the second pass are silently dropped + lazily evicted.
-
-CM workers verify JWTs locally (shared JWT_SECRET) — no Main Service round-trip.
 """
 
 import asyncio
@@ -178,38 +176,38 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
         request: pb2.InboundMessage,
         db,
     ) -> pb2.RoutingAck:
-        sent_at = datetime.fromisoformat(request.sentAt.replace("Z", "+00:00"))
-
-        db_msg = DB_models.message(
-            fromId=request.fromId,
-            toId=request.toId,
-            body=request.body,
-            sentAt=sent_at,
-        )
-        db.add(db_msg)
-        await db.flush()
-        await db.refresh(db_msg)
-        await db.commit()
-
-        msg_id = db_msg.id
-
-        def outbound_factory(uids: list[int]) -> pb2.OutboundMessage:
-            return pb2.OutboundMessage(
-                target_user_ids=uids,
+        try:
+            db_msg = DB_models.message(
                 fromId=request.fromId,
                 toId=request.toId,
-                type=request.type,
                 body=request.body,
-                sentAt=request.sentAt,
-                message_id=msg_id,
+            )
+            db.add(db_msg)
+            flush = await db.flush()
+            refresh = await db.refresh(db_msg)
+            commit = await db.commit()
+
+            msg_id = db_msg.id
+
+            def outbound_factory(uids: list[int]) -> pb2.OutboundMessage:
+                return pb2.OutboundMessage(
+                    target_user_ids=uids,
+                    fromId=request.fromId,
+                    toId=request.toId,
+                    type=request.type,
+                    body=request.body,
+                    message_id=msg_id,
+                )
+
+            # Fire-and-forget fan-out (don't block the ACK to the sender's CM)
+            asyncio.create_task(
+                _fanout([request.toId], sender_id=request.fromId, outbound_factory=outbound_factory)
             )
 
-        # Fire-and-forget fan-out (don't block the ACK to the sender's CM)
-        asyncio.create_task(
-            _fanout([request.toId], sender_id=request.fromId, outbound_factory=outbound_factory)
-        )
-
-        return pb2.RoutingAck(success=True, message_id=msg_id)
+            return pb2.RoutingAck(success=True, message_id=msg_id)
+        except Exception as exc:
+            print(f"Error in _handle_direct: {exc}")
+            raise
 
     # ── Group message ─────────────────────────────────────────────────────────
 

@@ -9,7 +9,7 @@ import { nowISO } from '../utils/time.js';
 const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
-  const { userId } = useAuth();
+  const { userId, token } = useAuth();
 
   // { [otherId]: { user: {id,username,name,...}, messages: [] } }
   const [directConvs, setDirectConvs]   = useState({});
@@ -64,15 +64,19 @@ export function ChatProvider({ children }) {
     } finally {
       setChatLoading(false);
     }
-  }, [userId]);
+  }, [userId, token]);
 
   // ─── WebSocket ──────────────────────────────────────────────────────────────
   const connectWS = useCallback(() => {
-    if (!shouldConnectRef.current || !userId) return;
+    if (!shouldConnectRef.current || !userId || !token) return;
 
     const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
     const ws = new WebSocket(`${WS_BASE}/ws/${userId}`);
     wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'auth', token }));
+    };
 
     ws.onmessage = (event) => {
       try {
