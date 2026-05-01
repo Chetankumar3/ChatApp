@@ -34,15 +34,25 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 
 ---
 
-## Architecture — A Phased Journey
+## Roadmap
 
-The architecture isn't fixed. It evolves deliberately across phases, each one motivated by a real bottleneck encountered in the previous one.
+- [x] [**Phase 1: Single Service (Current)**](#phase-1-single-service-current) — Single FastAPI server monolith, WebSocket messaging, full CI/CD.
+- [x] Integration test suite (auth, users, groups).
+- [x] Phase 1 load test report (k6).
+- [] [**Phase 2: Monolithic to Microservice**](#phase-2-monolithic-to-microservice) — Extract Python Connection Manager over gRPC.
+- [ ] Phase 2 load test report (k6).
+- [ ] [**Phase 3: Horizontal Scaling**](#phase-3-horizontal-scaling) — Scale over multiple AWS instances with Redis state sync.
+- [ ] Phase 3 load test report (k6).
+- [ ] [**Phase 4: Go Connection Manager**](#phase-4-go-connection-manager) — Rewrite Connection Manager in Go for true multi-core, non-blocking I/O.
+- [ ] Phase 4 load test report (k6).
+- [ ] [**Phase 5: Perfection & Features**](#phase-5-perfection--features) — Feature completeness (Read receipts, presence, OS-level push notifications).
 
 ---
 
-### Phase 1 — Single Service (Current)
+## Architecture & Phases
 
-```
+### Phase 1: Single Service (Current)
+```text
 Browser
   │
   ▼
@@ -57,7 +67,7 @@ PostgreSQL     WebSocket
                (Python, in-process)
 ```
 
-A single FastAPI server running on an **AWS t3.micro** instance handles everything — REST APIs, WebSocket connections, and serves as the origin for Nginx to proxy. The connection manager lives inside the Python process, which means it shares the GIL. It works. And it has limits that become visible under load.
+A single FastAPI server running a single worker on an **AWS t3.micro** instance handles everything — REST APIs, WebSocket connections, and serves as the origin for Nginx to proxy. The connection manager lives inside the single Python process, which means it shares the Global Interpreter Lock (GIL). It works, but it binds network I/O and CPU-bound application logic together, creating limits that become visible under load.
 
 Load testing with **k6** is run at each phase. Results will be published as HTML reports in the repository as they are completed.
 
@@ -65,51 +75,134 @@ Load testing with **k6** is run at each phase. Results will be published as HTML
 
 ---
 
-### Phase 2 — C++ Connection Manager (Planned)
+### Phase 2: Monolithic to Microservice
 
-The WebSocket connection manager will be extracted into a standalone **C++ service**, communicating with the FastAPI backend over **gRPC**.
+To prepare for high concurrency, the application logic and the transport layer must be decoupled. The WebSocket Connection Manager will be extracted into its own dedicated Python service. 
 
-The goal is straightforward: Python is not the right tool for managing thousands of concurrent, stateful connections. C++ is. A dedicated service eliminates the GIL entirely, allows fine-grained control over thread pools, and gives the connection layer room to breathe independently of the application logic layer.
+Instead of HTTP, the Main Service and the Connection Manager will communicate internally using **gRPC**. 
 
+Decoupling allows the Main Service to focus purely on database transactions and business logic, while the Connection Manager acts strictly as a dumb router managing the `epoll` event loop for open WebSockets.
+```mermaid
+title Real-Time Message Routing Flow
+autoNumber nested
+
+// Actor definitions with icons and colors
+Public Client [icon: globe, color: blue]
+Connection Manager WS [icon: monitor, color: green]
+Connection Manager gRPC [icon: server, color: green]
+Main Service gRPC [icon: server, color: orange]
+Main Service FastAPI [icon: server, color: orange]
+Redis State [icon: database, color: red]
+
+// PHASE 1: Establish Connection
+Public Client > Connection Manager WS: Connect via WebSocket (Port 8000)
+Connection Manager WS > Connection Manager WS: Validate user token
+Connection Manager WS > Connection Manager WS: Store socket in memory
+
+// PHASE 2: Send Message & Routing
+Public Client > Connection Manager WS: Send message payload
+activate Connection Manager WS
+Connection Manager WS > Main Service gRPC: Forward message for processing [color: green]
+deactivate Connection Manager WS
+
+activate Main Service gRPC
+Main Service gRPC > Postgres: Save message to database\
+activate Postgres
+Postgres > Main Service gRPC: Acknowledge save
+deactivate Postgres
+
+Main Service gRPC > Postgres: Query for all recipient user IDs
+activate Postgres
+Postgres > Main Service gRPC: Return recipient list
+deactivate Postgres
+
+Main Service gRPC > Redis State: get list of CM worker IP addresses for all  active users
+activate Redis State
+Redis State > Main Service gRPC: Return worker-to-userids mapping
+deactivate Redis State
+
+// PHASE 3: Delivery
+Main Service gRPC > Connection Manager gRPC: Send message to recipient's worker
+activate Connection Manager gRPC
+Connection Manager gRPC > Public Client: Deliver messages parallely via WebSocket stored by FastAPI server
+
+// PHASE 4: Error Handling
+alt [label: If delivery succeeds, icon: check] {
+  Connection Manager gRPC > Main Service gRPC: Acknowledge delivery
+}else [label: If delivery fails, icon: x] {
+  Connection Manager gRPC > Main Service gRPC: Report delivery failure
+  Main Service gRPC > Redis State: get list of CM worker IP addresses for all failed active users (this is for users who got disconnected and reconncected to some other CM worker)
+  activate Redis State
+  Redis State > Main Service gRPC: Return worker-to-userids mapping
+  deactivate Redis State
+  Main Service gRPC > Connection Manager gRPC: Send message to recipient's worker
+  Connection Manager gRPC > Public Client: Deliver messages parallely via WebSocket stored by FastAPI server
+  Connection Manager gRPC > Main Service gRPC: Acknowledge delivery
+}
+  deactivate Connection Manager gRPC
+deactivate Main Service gRPC
 ```
-FastAPI  ──── gRPC ────►  C++ Connection Manager
-                              │
-                         (Thread pool,
-                          raw socket I/O,
-                          all CPU cores yours)
-```
-
-The t3.micro has 2 vCPUs — both mapped to a single physical core. It's a humbling environment to squeeze concurrency out of. That's exactly the point.
 
 ---
 
-### Phase 3 — Horizontal Scaling (Planned)
+### Phase 3: Horizontal Scaling
 
-Once a single node is genuinely optimised, the architecture scales out:
+Once the microservice architecture is stable, the system scales out across multiple AWS instances:
 
-```
+```text
                     ┌─────────────────────────────┐
-Browser ──► Nginx ──┤  Load Balancer               │
+Browser ──► Nginx ──┤  Load Balancer              │
            (L7)     └──┬──────────────┬────────────┘
                        │              │
-                  Node 1           Node 2
-                FastAPI +        FastAPI +
-                C++ ConnMgr      C++ ConnMgr
+                 Node 1 (EC2)   Node 2 (EC2)
+                ┌────────────┐ ┌────────────┐
+                │ Main Svc   │ │ Main Svc   │
+                │ ConnMgr    │ │ ConnMgr    │
+                └──────┬─────┘ └──────┬─────┘
                        │              │
                        └──────┬───────┘
-                              │
-                    Gossip Protocol (C++)
-                         or Redis
-                    (Connection state sync)
+                              ▼
+                     Redis (State Sync)
 ```
 
-Multiple connection manager nodes need to know where each connected user lives so messages can be routed correctly across nodes. This will be solved with either a **C++ gossip protocol implementation** or **Redis pub/sub** — the load test results from Phase 2 will decide which.
+**Why Redis?** 
+When a user sends a message to a chat room, the backend needs to deliver it to multiple users. In a multi-node setup, User A might be connected to Node 1, and User B to Node 2. Redis acts as the central nervous system. When a message is sent, the Main Service queries Redis to find out exactly which Connection Manager worker holds the recipient's WebSocket, allowing targeted delivery without broadcasting to every server.
+
+**Why gRPC for Internal Communication?**
+Standard HTTP/REST is heavy. It requires parsing large text headers and setting up new TCP connections constantly. gRPC uses HTTP/2 and Protobufs, meaning the data is serialized into a highly compressed, ultra-fast binary format. It multiplexes thousands of requests over a single persistent TCP connection, eliminating the bottleneck of internal microservice chatter.
+
+---
+
+### Phase 4: Go Connection Manager
+
+While Phase 3 provides scalability, Python's `asyncio` is ultimately limited by the GIL and heavy memory overhead per connection. The Python Connection Manager will be completely rewritten in **Go**.
+```text
+FastAPI Main ──── gRPC ────►  Go Connection Manager
+                              (Goroutines, Netpoll,
+                               All CPU cores utilized)
+```
+
+**The Advantages of the Go Switch:**
+*   **Raw Speed:** Go's compiled runtime drastically outperforms Python/FastAPI for raw network throughput.
+*   **True Multithreading:** Unlike Python's single-core GIL restriction, a single Go worker dynamically utilizes all available CPU cores. 
+*   **Minimal Overhead:** Go manages thousands of concurrent connections using lightweight Goroutines (taking kilobytes of memory) rather than heavy OS threads.
+*   **Optimized Network I/O:** Go utilizes a highly optimized internal `netpoller` (interfacing directly with Linux `epoll`). It requires only one network card reader thread to manage thousands of active sockets, drastically reducing context-switching CPU overhead.
+
+---
+
+### Phase 5: Perfection & Features
+
+With a horizontally scalable, Go-powered, non-blocking architecture in place, the system will have the overhead capacity to handle complex, high-frequency state updates.
+
+This phase will introduce:
+*   **Real-time Read & Delivery Receipts** (High-frequency WS chatter).
+*   **Live User Status / Presence** (Online/Offline/Typing indicators synchronized via Redis).
+*   **Push Notifications** (Android / Windows desktop background notifications).
 
 ---
 
 ## CI/CD Pipeline
-
-```
+```text
 Push to main
      │
      ▼
@@ -174,19 +267,6 @@ pytest tests/test_groups.py::TestCreateGroup -v
 
 ## Project Goals
 
-- Build something that handles real concurrency, not just simulated
-- Make every architectural decision traceable to a measurable outcome (load test)
-- Practice the full lifecycle: design → implement → test → break → redesign
-
----
-
-## Roadmap
-
-- [x] Phase 1 — FastAPI monolith, WebSocket messaging, full CI/CD
-- [x] Integration test suite (auth, users, groups)
-- [ ] Phase 1 load test report (k6)
-- [ ] Phase 2 — C++ connection manager over gRPC
-- [ ] Phase 2 load test report (k6)
-- [ ] Phase 3 — Horizontal scaling over 2 aws instances with gossip / Redis
-            (or even multiple instances for small duration of 1-2 hrs of load testing) 
-- [ ] Phase 3 load test report (k6)
+- Build something that handles real concurrency, not just simulated.
+- Make every architectural decision traceable to a measurable outcome (load test).
+- Practice the full lifecycle: design → implement → test → break → redesign.

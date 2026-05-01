@@ -26,7 +26,7 @@ if _version_not_supported:
 
 
 class MainRouterStub(object):
-    """Implemented by the Main Service — receives messages forwarded by CM workers
+    """Implemented by the Main Service
     """
 
     def __init__(self, channel):
@@ -43,7 +43,7 @@ class MainRouterStub(object):
 
 
 class MainRouterServicer(object):
-    """Implemented by the Main Service — receives messages forwarded by CM workers
+    """Implemented by the Main Service
     """
 
     def RouteInboundMessage(self, request, context):
@@ -69,7 +69,7 @@ def add_MainRouterServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class MainRouter(object):
-    """Implemented by the Main Service — receives messages forwarded by CM workers
+    """Implemented by the Main Service
     """
 
     @staticmethod
@@ -101,7 +101,7 @@ class MainRouter(object):
 
 
 class ConnectionManagerStub(object):
-    """Implemented by CM workers — receives delivery requests from Main Service
+    """Implemented by CM workers
     """
 
     def __init__(self, channel):
@@ -118,7 +118,7 @@ class ConnectionManagerStub(object):
 
 
 class ConnectionManagerServicer(object):
-    """Implemented by CM workers — receives delivery requests from Main Service
+    """Implemented by CM workers
     """
 
     def DeliverOutboundMessage(self, request, context):
@@ -144,7 +144,7 @@ def add_ConnectionManagerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ConnectionManager(object):
-    """Implemented by CM workers — receives delivery requests from Main Service
+    """Implemented by CM workers
     """
 
     @staticmethod

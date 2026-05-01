@@ -12,18 +12,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .src import general, group, login, user
-from .src.validate_ws import internal_router
 from .src.router_servicer import MainRouterServicer
 from .database import engine
 from . import DB_models
 
-import grpc_stub_pb2_grpc as pb2_grpc
+from .src.grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
 from redis_service.registry import register_service, heartbeat_loop, deregister_service
 from redis_service.client import close_redis
 
-SERVICE_GRPC_PORT = int(os.getenv("SERVICE_GRPC_PORT", "50050"))
-SERVICE_HTTP_PORT = int(os.getenv("SERVICE_HTTP_PORT", "8000"))
-SERVICE_ADVERTISE_HOST = os.getenv("SERVICE_ADVERTISE_HOST", "127.0.0.1")
+SERVICE_GRPC_PORT       = int(os.getenv("SERVICE_GRPC_PORT",       "50050"))
+SERVICE_HTTP_PORT       = int(os.getenv("SERVICE_HTTP_PORT",        "8000"))
+SERVICE_ADVERTISE_HOST  = os.getenv("SERVICE_ADVERTISE_HOST",       "127.0.0.1")
 
 _service_id: str | None = None
 
@@ -72,11 +71,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(login.router, tags=["Login"])
-app.include_router(user.router, prefix="/users", tags=["User APIs"])
-app.include_router(general.router, tags=["General APIs"])
-app.include_router(group.router, prefix="/groups", tags=["Group APIs"])
-app.include_router(internal_router, tags=["Internal"])
+app.include_router(login.router,   tags=["Login"])
+app.include_router(user.router,    prefix="/users",  tags=["User APIs"])
+app.include_router(general.router,                   tags=["General APIs"])
+app.include_router(group.router,   prefix="/groups", tags=["Group APIs"])
 
 
 async def serve_fastapi():

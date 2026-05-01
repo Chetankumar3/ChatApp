@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fgrpc_stub.proto\"o\n\x0eInboundMessage\x12\x0e\n\x06\x66romId\x18\x01 \x01(\x05\x12\x0c\n\x04toId\x18\x02 \x01(\x05\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\x12\x0e\n\x06sentAt\x18\x05 \x01(\t\x12\x13\n\x0b\x63lient_uuid\x18\x06 \x01(\t\"@\n\nRoutingAck\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x12\n\nmessage_id\x18\x02 \x01(\x05\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"\x88\x01\n\x0fOutboundMessage\x12\x17\n\x0ftarget_user_ids\x18\x01 \x03(\x05\x12\x0e\n\x06\x66romId\x18\x02 \x01(\x05\x12\x0c\n\x04toId\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0c\n\x04\x62ody\x18\x05 \x01(\t\x12\x0e\n\x06sentAt\x18\x06 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x05\"-\n\x0b\x44\x65liveryAck\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\r\n\x05\x65rror\x18\x02 \x01(\t2A\n\nMainRouter\x12\x33\n\x13RouteInboundMessage\x12\x0f.InboundMessage\x1a\x0b.RoutingAck2M\n\x11\x43onnectionManager\x12\x38\n\x16\x44\x65liverOutboundMessage\x12\x10.OutboundMessage\x1a\x0c.DeliveryAckb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fgrpc_stub.proto\"o\n\x0eInboundMessage\x12\x0e\n\x06\x66romId\x18\x01 \x01(\x05\x12\x0c\n\x04toId\x18\x02 \x01(\x05\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x0c\n\x04\x62ody\x18\x04 \x01(\t\x12\x0e\n\x06sentAt\x18\x05 \x01(\t\x12\x13\n\x0b\x63lient_uuid\x18\x06 \x01(\t\"@\n\nRoutingAck\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x12\n\nmessage_id\x18\x02 \x01(\x05\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"\x88\x01\n\x0fOutboundMessage\x12\x17\n\x0ftarget_user_ids\x18\x01 \x03(\x05\x12\x0e\n\x06\x66romId\x18\x02 \x01(\x05\x12\x0c\n\x04toId\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x0c\n\x04\x62ody\x18\x05 \x01(\t\x12\x0e\n\x06sentAt\x18\x06 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x05\"5\n\x0b\x44\x65liveryAck\x12\x17\n\x0f\x66\x61iled_user_ids\x18\x01 \x03(\x05\x12\r\n\x05\x65rror\x18\x02 \x01(\t2A\n\nMainRouter\x12\x33\n\x13RouteInboundMessage\x12\x0f.InboundMessage\x1a\x0b.RoutingAck2M\n\x11\x43onnectionManager\x12\x38\n\x16\x44\x65liverOutboundMessage\x12\x10.OutboundMessage\x1a\x0c.DeliveryAckb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,9 +38,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_OUTBOUNDMESSAGE']._serialized_start=199
   _globals['_OUTBOUNDMESSAGE']._serialized_end=335
   _globals['_DELIVERYACK']._serialized_start=337
-  _globals['_DELIVERYACK']._serialized_end=382
-  _globals['_MAINROUTER']._serialized_start=384
-  _globals['_MAINROUTER']._serialized_end=449
-  _globals['_CONNECTIONMANAGER']._serialized_start=451
-  _globals['_CONNECTIONMANAGER']._serialized_end=528
+  _globals['_DELIVERYACK']._serialized_end=390
+  _globals['_MAINROUTER']._serialized_start=392
+  _globals['_MAINROUTER']._serialized_end=457
+  _globals['_CONNECTIONMANAGER']._serialized_start=459
+  _globals['_CONNECTIONMANAGER']._serialized_end=536
 # @@protoc_insertion_point(module_scope)

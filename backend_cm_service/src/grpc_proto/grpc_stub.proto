@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+// Implemented by the Main Service
+service MainRouter {
+    rpc RouteInboundMessage (InboundMessage) returns (RoutingAck);
+}
+
+// Implemented by CM workers
+service ConnectionManager {
+    rpc DeliverOutboundMessage (OutboundMessage) returns (DeliveryAck);
+}
+
+// ── Inbound (CM → Main) ───────────────────────────────────────────────────────
+
+message InboundMessage {
+    int32  fromId      = 1;
+    int32  toId        = 2;   // peer user_id or group_id
+    string type        = 3;   // "direct_message" | "group_message"
+    string body        = 4;
+    string sentAt      = 5;   // ISO-8601 UTC
+    string client_uuid = 6;   // client-generated dedup key, echoed in ack
+}
+
+message RoutingAck {
+    bool   success    = 1;
+    int32  message_id = 2;
+    string error      = 3;
+}
+
+// ── Outbound (Main → CM) ─────────────────────────────────────────────────────
+
+message OutboundMessage {
+    repeated int32 target_user_ids = 1;
+    int32  fromId     = 2;
+    int32  toId       = 3;
+    string type       = 4;
+    string body       = 5;
+    string sentAt     = 6;
+    int32  message_id = 7;
+}
+
+// failed_user_ids: IDs of users this CM could not deliver to.
+// Empty list  → all deliveries succeeded.
+// Non-empty   → caller should retry those IDs after a brief sleep.
+message DeliveryAck {
+    repeated int32 failed_user_ids = 1;
+    string         error           = 2;
+}

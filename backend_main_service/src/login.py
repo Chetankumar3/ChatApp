@@ -19,11 +19,11 @@ load_dotenv()
 WEBCLIENT_ID = os.getenv("WEBCLIENT_ID")
 JWT_SECRET = os.getenv("JWT_SECRET")
 router = APIRouter()
-
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 def create_jwt_token(user_id: int) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=2)
-    return jwt.encode({"user_id": user_id, "exp": expire}, JWT_SECRET, algorithm="HS256")
+    return jwt.encode({"user_id": user_id, "exp": expire}, JWT_SECRET, algorithm=ALGORITHM)
 
 
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
@@ -32,7 +32,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid authentication")
     token = auth_header.split(" ", 1)[1]
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         user_id = payload.get("user_id")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")

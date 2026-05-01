@@ -15,7 +15,7 @@ from .src import websocket_endpoint
 from .src.grpc_outbound_servicer import ConnectionManagerServicer
 from .src.cm_directory import directory
 
-import grpc_stub_pb2_grpc as pb2_grpc
+from .src.grpc_proto import  grpc_stub_pb2_grpc as pb2_grpc
 from redis_service.registry import register_service, heartbeat_loop, deregister_service
 from redis_service.client import close_redis
 
