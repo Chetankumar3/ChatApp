@@ -39,7 +39,8 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 - [x] [**Phase 1: Single Service (Current)**](#phase-1-single-service-current) — Single FastAPI server monolith, WebSocket messaging, full CI/CD.
 - [x] Integration test suite (auth, users, groups).
 - [x] Phase 1 load test report (k6).
-- [] [**Phase 2: Monolithic to Microservice**](#phase-2-monolithic-to-microservice) — Extract Python Connection Manager over gRPC.
+- [x] [**Phase 2: Monolithic to Microservice**](#phase-2-monolithic-to-microservice) — Extract Python Connection Manager over gRPC.
+      Completed but not deployed yet.
 - [ ] Phase 2 load test report (k6).
 - [ ] [**Phase 3: Horizontal Scaling**](#phase-3-horizontal-scaling) — Scale over multiple AWS instances with Redis state sync.
 - [ ] Phase 3 load test report (k6).
