@@ -154,7 +154,7 @@ sequenceDiagram
         CMgRPC-->>MaingRPC: Acknowledge delivery
     end
     deactivate CMgRPC
-    deactivate MaingRPC
+    deactivate MaingRPC```
 ---
 
 ### Phase 3: Horizontal Scaling
