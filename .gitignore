@@ -16,7 +16,7 @@ backend/.env
 .env.*
 
 # Load testing
-Load_testing/
+Load_testing_result_htmls/
 
 # Logs
 *.log
@@ -31,7 +31,6 @@ Load_testing/
 frontend/node_modules/
 frontend/build/
 frontend/dist/
-Load_testing_result_htmls/
 
 # ----------------------
 # VS Code
