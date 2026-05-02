@@ -84,7 +84,32 @@ Instead of HTTP, the Main Service and the Connection Manager will communicate in
 
 Decoupling allows the Main Service to focus purely on database transactions and business logic, while the Connection Manager acts strictly as a dumb router managing the `epoll` event loop for open WebSockets.
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#E3F2FD', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#fff'}}}%%
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#E3F2FD",       /* box color (light blue) */
+    "secondaryColor": "#2c2c2c",     /* phase bars (dark so white text works) */
+    "tertiaryColor": "#1e1e1e",      
+
+    "primaryTextColor": "#000000",   /* box text = dark */
+    "textColor": "#ffffff",          /* everything else = white */
+    "lineColor": "#ffffff",
+    "edgeLabelBackground": "#1e1e1e"
+  },
+  "themeCSS": "
+    .node text {
+      fill: #000000 !important;
+    }
+
+    .edgeLabel text,
+    .messageText,
+    .actor,
+    .labelText,
+    .loopText {
+      fill: #ffffff !important;
+    }
+  "
+}}%%
 sequenceDiagram
     autonumber
     participant Internet as Public Client
