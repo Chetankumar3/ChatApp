@@ -84,6 +84,7 @@ async def google_login(data: models.GoogleTokenData, db: Session = Depends(get_d
 
             return {"token": create_jwt_token(user_.id), "isNewUser": True}
 
+        await db.close()
         return {"token": create_jwt_token(user_id), "isNewUser": False}
     except HTTPException:
         raise
@@ -102,6 +103,7 @@ async def credentials_login(data: models.LoginCredentials, db: Session = Depends
         )
         password_entry = password_entry.scalar_one_or_none()
 
+        await db.close()
         if not password_entry:
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -129,11 +131,9 @@ async def credentials_login(data: models.LoginCredentials, db: Session = Depends
 async def register(data: models.RegisterCredentials, db: Session = Depends(get_db)):
     try:
         existing = await db.execute(
-            select(DB_models.passwords).where(
-                DB_models.passwords.userId == select(DB_models.user.id).where(
-                    DB_models.user.username == data.username
-                ).scalar_subquery()
-            )
+            select(DB_models.passwords)
+            .join(DB_models.user, DB_models.passwords.userId == DB_models.user.id)
+            .where(DB_models.user.username == data.username)
         )
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="User already exists, Login or Change username")

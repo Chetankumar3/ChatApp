@@ -1,0 +1,62 @@
+[31mERRO[0m[0183] [VU 8] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0185] [VU 254] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0185] [VU 153] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0186] [VU 203] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0187] [VU 23] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0188] [VU 185] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0190] [VU 198] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0190] [VU 33] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0192] [VU 305] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0193] [VU 97] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0195] [VU 41] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0195] [VU 68] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0196] [VU 240] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0197] [VU 78] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0198] [VU 29] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0199] [VU 271] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0199] [VU 353] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0199] [VU 35] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0199] [VU 34] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0200] [VU 25] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0200] [VU 79] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0200] [VU 62] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0201] [VU 150] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0201] [VU 329] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0201] [VU 348] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0204] [VU 99] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0207] [VU 264] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0210] [VU 400] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0213] [VU 285] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0214] [VU 202] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0219] [VU 318] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0226] [VU 97] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0226] [VU 91] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0233] [VU 343] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0236] [VU 138] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0237] [VU 20] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0239] [VU 23] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0247] [VU 357] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0247] [VU 19] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0248] [VU 89] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0249] [VU 229] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0251] [VU 249] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0251] [VU 380] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0252] [VU 260] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0253] [VU 367] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0254] [VU 247] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0255] [VU 17] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0256] [VU 291] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0257] [VU 226] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0258] [VU 61] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0260] [VU 6] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0260] [VU 55] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0260] [VU 307] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0261] [VU 193] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0261] [VU 88] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0267] [VU 69] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0267] [VU 386] Get User Info Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0272] [VU 130] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 
+[31mERRO[0m[0277] [VU 319] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0278] [VU 336] WebSocket Error: write tcp 192.168.0.119:65068->34.44.178.171:8001: wsasend: An existing connection was forcibly closed by the remote host. 
+[31mERRO[0m[0284] [VU 299] Get Conversations Failed | Status: 500 | Body: Internal Server Error 
+[31mERRO[0m[0286] [VU 174] WebSocket Error: websocket: close 1006 (abnormal closure): unexpected EOF 

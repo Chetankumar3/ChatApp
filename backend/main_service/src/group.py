@@ -53,6 +53,7 @@ async def get_group_info(
             .join(DB_models.mapTable, DB_models.user.id == DB_models.mapTable.userId)
             .where(DB_models.mapTable.groupId == group_id)
         )
+        await db.close()
         return {**group_info.__dict__, "members": members.all()}
     except HTTPException:
         raise
@@ -229,11 +230,9 @@ async def delete_group(
 
         await db.execute(delete(DB_models.mapTable).where(DB_models.mapTable.groupId == group_id))
         await db.execute(
-            delete(DB_models.messageReceipt).where(
-                DB_models.messageReceipt.groupMessageId.in_(
-                    select(DB_models.groupMessage.id).where(DB_models.groupMessage.toId == group_id)
-                )
-            )
+            delete(DB_models.messageReceipt)
+            .join(DB_models.groupMessage, DB_models.groupMessage.id == DB_models.messageReceipt.groupMessageId)
+            .where(DB_models.groupMessage.toId == group_id)
         )
         await db.execute(delete(DB_models.groupMessage).where(DB_models.groupMessage.toId == group_id))
         await db.delete(db_group)

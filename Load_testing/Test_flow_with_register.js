@@ -4,12 +4,12 @@ import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 
-const BASE_URL = 'http://16.112.64.12.nip.io/chatapp/api';
+const BASE_URL = 'http://34.44.178.171:8001/chatapp/api';
 
 export const options = {
     stages: [
-        { duration: '5m', target: 1000 },
-        { duration: '5m', target: 1000 },
+        { duration: '2m', target: 400 },
+        { duration: '2m', target: 400 },
         { duration: '2m', target: 0 },
     ],
     gracefulRampDown: '1m',
