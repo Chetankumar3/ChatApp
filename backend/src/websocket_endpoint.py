@@ -13,13 +13,8 @@ router = APIRouter()
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(
     websocket_: WebSocket,
-    user_id: int,
-    current_user=Depends(get_current_websocket_user),
+    user_id: int
 ):
-    if current_user.id != user_id:
-        await websocket_.close(code=1008)
-        return
-
     await manager.connect(websocket_, user_id)
 
     try:

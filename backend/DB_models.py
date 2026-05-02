@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey, func, String, Text
+from sqlalchemy import DateTime, ForeignKey, func, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -59,7 +59,7 @@ class message(Base):
     fromId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     toId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     body: Mapped[str] = mapped_column(Text)
-    sentAt: Mapped[datetime] = mapped_column(server_default=func.now())
+    sentAt: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     receivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     seenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
@@ -71,7 +71,7 @@ class groupMessage(Base):
     fromId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     toId: Mapped[int] = mapped_column(ForeignKey("group.id"), index=True)
     body: Mapped[str] = mapped_column(Text)
-    sentAt: Mapped[datetime] = mapped_column(server_default=func.now())
+    sentAt: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class messageReceipt(Base):

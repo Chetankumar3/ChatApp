@@ -169,11 +169,9 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
     try:
         # Check if username exists
         existing = await db.execute(
-            select(DB_models.passwords).where(
-                DB_models.passwords.userId == select(DB_models.user.id).where(
-                    DB_models.user.username == data.username
-                )
-            )
+            select(DB_models.passwords)
+            .join(DB_models.user, DB_models.passwords.userId == DB_models.user.id)
+            .where(DB_models.user.username == data.username)
         )
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="User already exists, Login or Change username")
