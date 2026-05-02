@@ -31,6 +31,7 @@ Load_testing/
 frontend/node_modules/
 frontend/build/
 frontend/dist/
+Load_testing_result_htmls/
 
 # ----------------------
 # VS Code
