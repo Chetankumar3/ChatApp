@@ -87,25 +87,41 @@ Decoupling allows the Main Service to focus purely on database transactions and 
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#E3F2FD",       /* box color (light blue) */
-    "secondaryColor": "#2c2c2c",     /* phase bars (dark so white text works) */
-    "tertiaryColor": "#1e1e1e",      
+    "primaryColor": "#E3F2FD",
+    "secondaryColor": "#2c2c2c",
+    "tertiaryColor": "#1e1e1e",
 
-    "primaryTextColor": "#000000",   /* box text = dark */
-    "textColor": "#ffffff",          /* everything else = white */
+    "primaryTextColor": "#000000",
+    "textColor": "#ffffff",
     "lineColor": "#ffffff",
     "edgeLabelBackground": "#1e1e1e"
   },
   "themeCSS": "
-    .node text {
+    /* Participants (boxes at top) */
+    .actor text {
       fill: #000000 !important;
     }
 
-    .edgeLabel text,
-    .messageText,
-    .actor,
-    .labelText,
-    .loopText {
+    .actor rect {
+      fill: #E3F2FD !important;
+    }
+
+    /* Notes (PHASE blocks) */
+    .note text {
+      fill: #ffffff !important;
+    }
+
+    .note rect {
+      fill: #2c2c2c !important;
+    }
+
+    /* Messages (arrows text) */
+    .messageText {
+      fill: #ffffff !important;
+    }
+
+    /* Sequence numbers */
+    .sequenceNumber {
       fill: #ffffff !important;
     }
   "
