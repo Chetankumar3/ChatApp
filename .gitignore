@@ -14,7 +14,6 @@ backend/.env
 .env
 *.personal
 .env.*
-backend/mono.env
 
 # Load testing
 Load_testing/
