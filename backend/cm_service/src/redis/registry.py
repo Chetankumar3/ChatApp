@@ -1,6 +1,6 @@
 import uuid
 import asyncio
-from redis_service.client import get_redis
+from .client import get_redis
 
 SERVICE_TTL = 90  # seconds; heartbeat renews every 30s so 3x headroom
 
@@ -38,11 +38,6 @@ async def set_user_route(user_id: int, cm_grpc_address: str):
     """Map user_id → CM gRPC address so Main Service can reach them."""
     r = await get_redis()
     await r.set(f"user:{user_id}", cm_grpc_address)
-
-
-async def get_user_route(user_id: int) -> str | None:
-    r = await get_redis()
-    return await r.get(f"user:{user_id}")
 
 
 async def delete_user_route(user_id: int):

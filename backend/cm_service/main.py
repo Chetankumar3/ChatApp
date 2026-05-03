@@ -12,8 +12,8 @@ from .src.grpc_outbound_servicer import ConnectionManagerServicer
 from .src.cm_directory import directory
 
 from .src.grpc_proto import  grpc_stub_pb2_grpc as pb2_grpc
-from redis_service.registry import register_service, heartbeat_loop, deregister_service
-from redis_service.client import close_redis
+from redis_service2.registry import register_service, heartbeat_loop, deregister_service
+from redis_service2.client import close_redis
 
 SERVICE_GRPC_PORT = int(os.getenv("SERVICE_GRPC_PORT", "50051"))
 SERVICE_HTTP_PORT = int(os.getenv("SERVICE_HTTP_PORT", "8001"))

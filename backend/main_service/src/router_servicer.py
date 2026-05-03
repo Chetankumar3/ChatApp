@@ -23,7 +23,7 @@ from .grpc_proto import grpc_stub_pb2 as pb2
 from .grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
 from .. import DB_models
 from ..database import AsyncSessionLocal
-from redis_service.registry import get_user_route, delete_user_route
+from redis_service2.registry import get_user_route, delete_user_route
 
 # ── Persistent gRPC channels & stubs to CM workers ───────────────────────────
 # Keyed by "host:port".  Created lazily on first contact, never closed.

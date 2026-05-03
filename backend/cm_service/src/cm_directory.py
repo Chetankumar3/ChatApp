@@ -15,7 +15,7 @@ import asyncio
 import grpc
 from .grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
 
-from redis_service.registry import get_service_addresses
+from .redis.registry import get_service_addresses
 
 
 class MainServiceDirectory:

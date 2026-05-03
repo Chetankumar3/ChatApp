@@ -27,7 +27,7 @@ from .grpc_proto import grpc_stub_pb2 as pb2
 from .state import add_connection, remove_connection
 from .cm_directory import directory
 
-from redis_service.registry import set_user_route, delete_user_route
+from .redis.registry import set_user_route, delete_user_route
 
 load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")

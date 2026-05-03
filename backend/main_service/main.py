@@ -13,8 +13,8 @@ from .database import engine
 from . import DB_models
 
 from .src.grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
-from redis_service.registry import register_service, heartbeat_loop, deregister_service
-from redis_service.client import close_redis
+from .src.redis.registry import register_service, heartbeat_loop, deregister_service
+from .src.redis.client import close_redis
 
 SERVICE_GRPC_PORT       = int(os.getenv("SERVICE_GRPC_PORT",       "50050"))
 SERVICE_HTTP_PORT       = int(os.getenv("SERVICE_HTTP_PORT",        "8000"))
