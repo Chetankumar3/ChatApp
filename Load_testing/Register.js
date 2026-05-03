@@ -3,7 +3,7 @@ import { check, sleep } from 'k6';
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 import exec from 'k6/execution';
 
-const BASE_URL = 'http://16.112.64.12.nip.io/chatapp/api';
+const BASE_URL = 'http://16.112.64.12.nip.io/ping/api';
 
 export const options = {
     // 15 Minutes Total Duration

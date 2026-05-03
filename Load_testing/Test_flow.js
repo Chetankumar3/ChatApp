@@ -6,7 +6,7 @@ import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 import { SharedArray } from 'k6/data'; // 🔥 NEW: Import SharedArray
 
-const BASE_URL = 'http://16.112.64.12.nip.io/chatapp/api';
+const BASE_URL = 'http://16.112.64.12.nip.io/ping/api';
 
 export const options = {
     stages: [

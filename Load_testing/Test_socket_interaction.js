@@ -8,8 +8,8 @@ import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 
 // ─── Environment ─────────────────────────────────────────────────────────────
-const BASE_URL = 'http://34.44.178.171:8001/chatapp/api';
-const WS_URL   = 'ws://34.44.178.171:8001/chatapp/api';
+const BASE_URL = 'http://34.44.178.171:8001/ping/api';
+const WS_URL   = 'ws://34.44.178.171:8001/ping/api';
 
 // ─── Custom Metrics ──────────────────────────────────────────────────────────
 const wsMsgSent     = new Counter('ws_messages_sent');

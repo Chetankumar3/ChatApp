@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 load_dotenv()
 
-# Add ChatApp/ root to sys.path so `backend` is importable as a package
-CHATAPP_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(CHATAPP_ROOT))
+# Add Ping/ root to sys.path so `backend` is importable as a package
+PING_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PING_ROOT))
 
 from backend.main_service.main import app
 from backend.main_service.database import Base, get_db

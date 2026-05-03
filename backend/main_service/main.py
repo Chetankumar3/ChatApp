@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     print("Main Service shut down gracefully.")
 
 
-app = FastAPI(lifespan=lifespan, root_path="/chatapp/main_service")
+app = FastAPI(lifespan=lifespan, root_path="/ping/main_service")
 
 origins = [
     "http://localhost:5173",

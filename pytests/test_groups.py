@@ -29,7 +29,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import ChatApp.backend_main_service.DB_models as DB_models
+import backend.main_service.DB_models as DB_models
 
 
 # ── inline seeding helpers ────────────────────────────────────────────────────

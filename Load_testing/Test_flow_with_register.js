@@ -4,7 +4,7 @@ import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 
-const BASE_URL = 'http://34.44.178.171:8001/chatapp/api';
+const BASE_URL = 'http://34.44.178.171:8001/ping/api';
 
 export const options = {
     stages: [
