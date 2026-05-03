@@ -13,7 +13,8 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args=json.loads(os.getenv("CONNECT_ARGS")),
-    poolclass=NullPool
+    poolclass=NullPool,
+    pool_pre_ping=True
 )
 
 AsyncSessionLocal = async_sessionmaker(
