@@ -1,0 +1,62 @@
+# version: '3.8'
+
+services:
+  ping-main:
+    image: 015903983337.dkr.ecr.ap-south-1.amazonaws.com/ping-main:1.3
+    container_name: ping-main
+    ports:
+      - "8000:8000"
+      - "50050:50050"
+    env_file:
+      - .env
+    environment:
+      - SERVICE_ADVERTISE_HOST=${HOST_IP}
+      - SERVICE_GRPC_PORT=50050
+      - SERVICE_HTTP_PORT=8000
+      - 'CONNECT_ARGS={"statement_cache_size": 0, "prepared_statement_cache_size": 0}'
+      - ALGORITHM="HS256"
+
+  ping-cm:
+    image: 015903983337.dkr.ecr.ap-south-1.amazonaws.com/ping-cm:1.3
+    container_name: ping-cm
+    ports:
+      - "8001:8001"
+      - "50051:50051"
+    env_file:
+      - .env
+    environment:
+      - SERVICE_ADVERTISE_HOST=${HOST_IP}
+      - SERVICE_GRPC_PORT=50051
+      - SERVICE_HTTP_PORT=8001
+      - ALGORITHM="HS256"
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: pgbouncer
+    env_file:
+      - .env
+    environment:
+      # Pool Configuration
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=500
+      - DEFAULT_POOL_SIZE=20
+      - MIN_POOL_SIZE=3
+      # Security & Admin
+      - ADMIN_USERS=postgres
+    ports:
+      - "6432:6432"
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro # ro = read-only
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - ping-main
+      - ping-cm

@@ -6,7 +6,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Request
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from sqlalchemy import select
@@ -86,11 +86,9 @@ async def google_login(data: models.GoogleTokenData, db: Session = Depends(get_d
 
         await db.close()
         return {"token": create_jwt_token(user_id), "isNewUser": False}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.post("/login/credentials")
@@ -120,11 +118,10 @@ async def credentials_login(data: models.LoginCredentials, db: Session = Depends
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
         return {"token": create_jwt_token(password_entry.userId), "isNewUser": False}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
+
 
 
 @router.post("/register")
@@ -155,8 +152,6 @@ async def register(data: models.RegisterCredentials, db: Session = Depends(get_d
         await db.commit()
 
         return {"token": create_jwt_token(user_.id), "isNewUser": False}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise

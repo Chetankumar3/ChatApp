@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,6 @@ async def get_all_users(
         result = await db.scalars(select(DB_models.user))
         await db.close()
         return {"users": result.all()}
-    except HTTPException:
+    except Exception:
+        await db.close()
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

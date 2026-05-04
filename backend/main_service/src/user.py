@@ -81,10 +81,9 @@ async def get_all_conversations(
             "associated_users": associated_users,
             "associated_groups": associated_groups,
         }
-    except HTTPException:
+    except Exception:
+        await db.close()
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/get_user_info/{userId}", response_model=models.user)
@@ -99,10 +98,9 @@ async def get_user_info(
         if not user_info:
             raise HTTPException(status_code=404, detail="User not found")
         return user_info
-    except HTTPException:
+    except Exception:
+        await db.close()
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/change_username/{userId}")
@@ -117,8 +115,6 @@ async def change_username(
             update(DB_models.user).where(DB_models.user.id == userId).values(username=data.newUsername)
         )
         await db.commit()
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise

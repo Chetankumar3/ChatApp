@@ -93,7 +93,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=5)
     except asyncio.TimeoutError:
         await websocket.close(code=1008)
-        return
+        raise
     except WebSocketDisconnect:
         return
 
@@ -101,16 +101,16 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
         auth_msg = json.loads(raw)
     except json.JSONDecodeError:
         await websocket.close(code=1008)
-        return
+        raise
 
     if auth_msg.get("type") != "auth" or not isinstance(auth_msg.get("token"), str):
         await websocket.close(code=1008)
-        return
+        raise RuntimeError("First message auth failed")
 
     token = auth_msg["token"]
     if not _validate_token(user_id, token):
         await websocket.close(code=1008)
-        return
+        raise RuntimeError("Invalid token")
 
     # ── 2. Register after successful auth ────────────────────────────────────
     await add_connection(user_id, websocket)
@@ -141,7 +141,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
             )
 
             try:
-                print("Sending to main_service...", msg)
                 ack = await _forward_to_main(inbound)
                 await websocket.send_text(json.dumps({
                     "type":        "ack",

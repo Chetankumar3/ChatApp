@@ -29,11 +29,9 @@ async def create_group(
         ])
         await db.commit()
         return {"message": "Group created successfully", "groupId": new_group.id}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.get("/get_group_info/{group_id}", response_model=models.group)
@@ -55,10 +53,9 @@ async def get_group_info(
         )
         await db.close()
         return {**group_info.__dict__, "members": members.all()}
-    except HTTPException:
+    except Exception:
+        await db.close()
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 async def _require_admin(db, group_id: int, modifier_id: int):
@@ -93,11 +90,9 @@ async def update_group(
         )
         await db.commit()
         return {"success": True, "message": "Group updated successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.post("/add_member/{modifier_id}/{group_id}", response_model=models.APIResponse)
@@ -119,11 +114,9 @@ async def add_member(
         ])
         await db.commit()
         return {"success": True, "message": "Member added successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.post("/remove_member/{modifier_id}/{group_id}", response_model=models.APIResponse)
@@ -145,11 +138,9 @@ async def remove_member(
         )
         await db.commit()
         return {"success": True, "message": "Member removed successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.post("/make_admin/{modifier_id}/{group_id}", response_model=models.APIResponse)
@@ -171,11 +162,9 @@ async def make_admin(
         )
         await db.commit()
         return {"success": True, "message": "User promoted to admin successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.delete("/exit/{group_id}/{user_id}", response_model=models.APIResponse)
@@ -198,11 +187,9 @@ async def exit_group(
         await db.delete(entry)
         await db.commit()
         return {"success": True, "message": "User exited group successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 
 @router.delete("/delete/{modifier_id}/{group_id}", response_model=models.APIResponse)
@@ -238,8 +225,6 @@ async def delete_group(
         await db.delete(db_group)
         await db.commit()
         return {"success": True, "message": "Group deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise

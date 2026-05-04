@@ -16,9 +16,11 @@ Implements one RPC on behalf of the Main Service:
 import asyncio
 from datetime import datetime
 
+import logging
+from logging.handlers import RotatingFileHandler
 import grpc
 from sqlalchemy import select
-
+from functools import wraps
 from .grpc_proto import grpc_stub_pb2 as pb2
 from .grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
 from .. import DB_models
@@ -30,6 +32,36 @@ from .redis.registry import get_user_route, delete_user_route
 _cm_channels: dict[str, grpc.aio.Channel] = {}
 _cm_stubs:    dict[str, pb2_grpc.ConnectionManagerStub] = {}
 
+error_logger = logging.getLogger("grpc_errors")
+error_logger.setLevel(logging.ERROR)
+file_handler = RotatingFileHandler(
+    filename="grpc_exceptions.log",
+    maxBytes=10 * 1024 * 1024,
+    backupCount=5,
+)
+file_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(levelname)s - gRPC: %(message)s")
+)
+error_logger.addHandler(file_handler)
+
+def handle_grpc_errors(func):
+    """Global handler for gRPC methods to prevent traceback loss and data leakage."""
+    @wraps(func)
+    async def wrapper(self, request, context):
+        try:
+            return await func(self, request, context)
+        except grpc.RpcError:
+            # Allow intentionally aborted contexts (e.g., INVALID_ARGUMENT) to pass through
+            raise
+        except Exception as exc:
+            # Log the full traceback internally
+            error_logger.error(
+                f"Unhandled gRPC Error in {func.__name__}: {str(exc)}", 
+                exc_info=True
+            )
+            # Safely abort the RPC without leaking the traceback to the client
+            await context.abort(grpc.StatusCode.INTERNAL, "Internal routing service failure")
+    return wrapper
 
 def _get_cm_stub(address: str) -> pb2_grpc.ConnectionManagerStub:
     """Return (or create) a persistent ConnectionManagerStub for *address*."""
@@ -151,23 +183,19 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
 
     # ── RouteInboundMessage ───────────────────────────────────────────────────
 
+    @handle_grpc_errors  # Attach the global handler here
     async def RouteInboundMessage(
         self,
         request: pb2.InboundMessage,
         context: grpc.aio.ServicerContext,
     ) -> pb2.RoutingAck:
         async with AsyncSessionLocal() as db:
-            try:
-                if request.type == "direct_message":
-                    return await self._handle_direct(request, db)
-                elif request.type == "group_message":
-                    return await self._handle_group(request, db)
-                else:
-                    context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                    return pb2.RoutingAck(success=False, error="Unknown message type")
-            except Exception as exc:
-                context.set_code(grpc.StatusCode.INTERNAL)
-                return pb2.RoutingAck(success=False, error=str(exc))
+            if request.type == "direct_message":
+                return await self._handle_direct(request, db)
+            elif request.type == "group_message":
+                return await self._handle_group(request, db)
+            else:
+                await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Unknown message type")
 
     # ── Direct message ────────────────────────────────────────────────────────
 
@@ -183,9 +211,9 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
                 body=request.body,
             )
             db.add(db_msg)
-            flush = await db.flush()
-            refresh = await db.refresh(db_msg)
-            commit = await db.commit()
+            await db.flush()
+            await db.refresh(db_msg)
+            await db.commit()
 
             msg_id = db_msg.id
 
@@ -199,14 +227,13 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
                     message_id=msg_id,
                 )
 
-            # Fire-and-forget fan-out (don't block the ACK to the sender's CM)
             asyncio.create_task(
                 _fanout([request.toId], sender_id=request.fromId, outbound_factory=outbound_factory)
             )
 
             return pb2.RoutingAck(success=True, message_id=msg_id)
-        except Exception as exc:
-            print(f"Error in _handle_direct: {exc}")
+        except Exception:
+            await db.rollback()
             raise
 
     # ── Group message ─────────────────────────────────────────────────────────
@@ -216,55 +243,57 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
         request: pb2.InboundMessage,
         db,
     ) -> pb2.RoutingAck:
-        sent_at = datetime.fromisoformat(request.sentAt.replace("Z", "+00:00"))
+        try:
+            sent_at = datetime.fromisoformat(request.sentAt.replace("Z", "+00:00"))
 
-        db_msg = DB_models.groupMessage(
-            fromId=request.fromId,
-            toId=request.toId,
-            body=request.body,
-            sentAt=sent_at,
-        )
-        db.add(db_msg)
-        await db.flush()
-        await db.refresh(db_msg)
-
-        # Fetch all group members
-        group_user_ids: list[int] = list(
-            await db.scalars(
-                select(DB_models.mapTable.userId).where(
-                    DB_models.mapTable.groupId == request.toId
-                )
-            )
-        )
-
-        # Write receipts — sender's marked received immediately
-        receipts = []
-        for uid in group_user_ids:
-            receipt = DB_models.messageReceipt(
-                groupMessageId=db_msg.id,
-                userId=uid,
-            )
-            if uid == request.fromId:
-                receipt.receivedAt = sent_at
-            receipts.append(receipt)
-        db.add_all(receipts)
-        await db.commit()
-
-        msg_id = db_msg.id
-
-        def outbound_factory(uids: list[int]) -> pb2.OutboundMessage:
-            return pb2.OutboundMessage(
-                target_user_ids=uids,
+            db_msg = DB_models.groupMessage(
                 fromId=request.fromId,
                 toId=request.toId,
-                type=request.type,
                 body=request.body,
-                sentAt=request.sentAt,
-                message_id=msg_id,
+                sentAt=sent_at,
+            )
+            db.add(db_msg)
+            await db.flush()
+            await db.refresh(db_msg)
+
+            group_user_ids: list[int] = list(
+                await db.scalars(
+                    select(DB_models.mapTable.userId).where(
+                        DB_models.mapTable.groupId == request.toId
+                    )
+                )
             )
 
-        asyncio.create_task(
-            _fanout(group_user_ids, sender_id=request.fromId, outbound_factory=outbound_factory)
-        )
+            receipts = []
+            for uid in group_user_ids:
+                receipt = DB_models.messageReceipt(
+                    groupMessageId=db_msg.id,
+                    userId=uid,
+                )
+                if uid == request.fromId:
+                    receipt.receivedAt = sent_at
+                receipts.append(receipt)
+            db.add_all(receipts)
+            await db.commit()
 
-        return pb2.RoutingAck(success=True, message_id=msg_id)
+            msg_id = db_msg.id
+
+            def outbound_factory(uids: list[int]) -> pb2.OutboundMessage:
+                return pb2.OutboundMessage(
+                    target_user_ids=uids,
+                    fromId=request.fromId,
+                    toId=request.toId,
+                    type=request.type,
+                    body=request.body,
+                    sentAt=request.sentAt,
+                    message_id=msg_id,
+                )
+
+            asyncio.create_task(
+                _fanout(group_user_ids, sender_id=request.fromId, outbound_factory=outbound_factory)
+            )
+
+            return pb2.RoutingAck(success=True, message_id=msg_id)
+        except Exception:
+            await db.rollback()
+            raise
