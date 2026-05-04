@@ -60,8 +60,8 @@ class message(Base):
     toId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
     body: Mapped[str] = mapped_column(Text)
     sentAt: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    receivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    seenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    receivedAt: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    seenAt: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class groupMessage(Base):
@@ -80,5 +80,5 @@ class messageReceipt(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     groupMessageId: Mapped[int] = mapped_column(ForeignKey("group_message.id"), index=True)
     userId: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
-    receivedAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    seenAt: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    receivedAt: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    seenAt: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

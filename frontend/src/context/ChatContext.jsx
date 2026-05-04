@@ -131,6 +131,7 @@ export function ChatProvider({ children }) {
       sentAt:  nowISO(),
     };
 
+    console.log('Sending message', msg);
     ws.send(JSON.stringify(msg));
 
     // Optimistic update

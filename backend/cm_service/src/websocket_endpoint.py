@@ -17,6 +17,9 @@ Message flow:
 import asyncio
 import json
 import os
+import logging
+from logging.handlers import RotatingFileHandler
+from functools import wraps
 
 import grpc
 import jwt
@@ -38,6 +41,17 @@ router = APIRouter()
 THIS_CM_GRPC_HOST = os.getenv("SERVICE_ADVERTISE_HOST", "127.0.0.1")
 THIS_CM_GRPC_PORT = os.getenv("SERVICE_GRPC_PORT", "50051")
 
+error_logger = logging.getLogger("websocket_errors")
+error_logger.setLevel(logging.ERROR)
+file_handler = RotatingFileHandler(
+    filename="websocket_exceptions.log",
+    maxBytes=10 * 1024 * 1024,
+    backupCount=5, 
+)
+file_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(levelname)s - Path: %(url)s - Detail: %(message)s")
+)
+error_logger.addHandler(file_handler)
 
 # ── Local JWT validation ─────────────────────────────────────────────────────
 
@@ -126,6 +140,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
+                error_logger.error(
+                    f"Invalid JSON received from user {user_id}: {raw}",
+                    extra={"url": str(websocket.url)},
+                    exc_info=True
+                )
                 await websocket.send_text(
                     json.dumps({"type": "error", "detail": "Invalid JSON"})
                 )
@@ -149,6 +168,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
                     "success":     ack.success,
                 }))
             except Exception as exc:
+                error_logger.error(
+                    f"Failed to forward message from user {user_id} to Main Service: {str(exc)}",
+                    extra={"url": str(websocket.url)},
+                    exc_info=True
+                )
                 await websocket.send_text(
                     json.dumps({"type": "error", "detail": str(exc)})
                 )

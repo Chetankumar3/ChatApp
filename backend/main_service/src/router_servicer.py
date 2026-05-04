@@ -19,7 +19,7 @@ from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 import grpc
-from sqlalchemy import select
+from sqlalchemy import func, select
 from functools import wraps
 from .grpc_proto import grpc_stub_pb2 as pb2
 from .grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
@@ -51,7 +51,7 @@ def handle_grpc_errors(func):
         try:
             return await func(self, request, context)
         except grpc.RpcError:
-            # Allow intentionally aborted contexts (e.g., INVALID_ARGUMENT) to pass through
+            error_logger.error(f"gRPC transport error in {func.__name__}", exc_info=True)
             raise
         except Exception as exc:
             # Log the full traceback internally
@@ -90,7 +90,7 @@ async def _try_deliver(
         ack: pb2.DeliveryAck = await stub.DeliverOutboundMessage(outbound, timeout=5)
         return list(ack.failed_user_ids)
     except Exception as exc:
-        print(f"[Main] gRPC transport error to CM {cm_address}: {exc}")
+        error_logger.error(f"gRPC transport error to CM {cm_address}: {str(exc)}", exc_info=True)
         return list(outbound.target_user_ids)
 
 
@@ -232,7 +232,8 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
             )
 
             return pb2.RoutingAck(success=True, message_id=msg_id)
-        except Exception:
+        except Exception as exc:
+            error_logger.error(f"Unhandled error in {self._handle_direct.__name__}: {str(exc)}", exc_info=True)
             await db.rollback()
             raise
 
@@ -245,12 +246,11 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
     ) -> pb2.RoutingAck:
         try:
             sent_at = datetime.fromisoformat(request.sentAt.replace("Z", "+00:00"))
-
+            
             db_msg = DB_models.groupMessage(
                 fromId=request.fromId,
                 toId=request.toId,
-                body=request.body,
-                sentAt=sent_at,
+                body=request.body
             )
             db.add(db_msg)
             await db.flush()
@@ -272,6 +272,7 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
                 )
                 if uid == request.fromId:
                     receipt.receivedAt = sent_at
+                    receipt.seenAt = sent_at
                 receipts.append(receipt)
             db.add_all(receipts)
             await db.commit()
@@ -285,7 +286,6 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
                     toId=request.toId,
                     type=request.type,
                     body=request.body,
-                    sentAt=request.sentAt,
                     message_id=msg_id,
                 )
 
@@ -294,6 +294,7 @@ class MainRouterServicer(pb2_grpc.MainRouterServicer):
             )
 
             return pb2.RoutingAck(success=True, message_id=msg_id)
-        except Exception:
+        except Exception as exc:
+            error_logger.error(f"Unhandled error in {self._handle_group.__name__}: {str(exc)}", exc_info=True)
             await db.rollback()
             raise

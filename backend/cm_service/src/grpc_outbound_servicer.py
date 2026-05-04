@@ -25,7 +25,8 @@ def handle_grpc_errors(func):
     async def wrapper(self, request, context):
         try:
             return await func(self, request, context)
-        except grpc.RpcError:
+        except grpc.RpcError as exc:
+            error_logger.error(f"gRPC error: {exc}", exc_info=True)
             raise
         except Exception as exc:
             error_logger.error(
