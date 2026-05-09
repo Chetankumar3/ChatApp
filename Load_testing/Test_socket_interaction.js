@@ -8,8 +8,8 @@ import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 
 // ─── Environment ─────────────────────────────────────────────────────────────
-const BASE_URL = 'http://34.44.178.171:8001/ping/api';
-const WS_URL   = 'ws://34.44.178.171:8001/ping/api';
+const BASE_URL = 'http://35.208.50.148:8000/ping/main_service';
+const WS_URL   = 'ws://35.208.50.148:8001/ping/cm_service';
 
 // ─── Custom Metrics ──────────────────────────────────────────────────────────
 const wsMsgSent     = new Counter('ws_messages_sent');
@@ -19,8 +19,9 @@ const wsRoundTrip   = new Trend('ws_round_trip_ms', true);
 // ─── Stage Configuration ─────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '2m', target: 400  },
-    { duration: '2m', target: 400 },
+    { duration: '1m', target: 80  },
+    { duration: '2m', target: 1000 },
+    { duration: '3m', target: 1000 },
     { duration: '1m', target: 0 },
   ],
   thresholds: {
@@ -47,7 +48,7 @@ function parseJWT(token) {
 }
 
 function nowISO() { return new Date().toISOString(); }
-function jitter(max) { sleep(Math.random() * (max || 5)); }
+function jitter(max) { sleep(1 + Math.random() * (max || 5)); }
 
 function authHeaders(token) {
   return { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } };
@@ -137,13 +138,20 @@ export default function () {
 
   const wsRes = ws.connect(
     `${WS_URL}/ws/${userId}`,
-    { headers: { Authorization: `Bearer ${token}` } },
     function (socket) {
       let messagesSent = 0;
       let intervalId;
 
       // ── On Open ──
       socket.on('open', () => {
+        
+        // 1. Send the authentication payload as the first message
+        socket.send(JSON.stringify({
+          type: 'auth',
+          token: token
+        }));
+
+        // 2. Begin standard load test messaging loop
         intervalId = socket.setInterval(() => {
           if (messagesSent >= MAX_MESSAGES) {
             clearInterval(intervalId);
@@ -176,6 +184,10 @@ export default function () {
 
         try {
           const data = JSON.parse(raw);
+          
+          // Skip latency tracking/checks if the server sends back an auth confirmation message
+          if (data.type === 'auth_success') return; 
+
           check(data, {
             'ws → message has type':   (d) => !!d.type,
             'ws → message has body':   (d) => typeof d.body === 'string',
@@ -226,4 +238,10 @@ export default function () {
   }
 
   jitter(3);
+}
+
+export function handleSummary(data) {
+  return {
+    'summary.json': JSON.stringify(data),
+  };
 }

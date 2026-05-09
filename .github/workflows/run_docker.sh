@@ -2,4 +2,4 @@
 # Grabs the IP of the eth0 interface in WSL
 export HOST_IP=$(ip route get 1 | awk '{print $7;exit}')
 
-docker compose up
+docker compose up -d

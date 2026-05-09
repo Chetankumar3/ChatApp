@@ -1,25 +1,10 @@
-"""
-Main Service gRPC servicer.
-
-Implements one RPC on behalf of the Main Service:
-
-  MainRouter.RouteInboundMessage
-    - Persists the message to PostgreSQL.
-    - Fans out to online recipients via a 2-pass delivery strategy:
-        Pass 1  - query Redis, group users by CM address, send in parallel.
-        Sleep   - await asyncio.sleep(0.075) to let reconnecting clients finish
-                  their new TCP handshake before we re-query Redis.
-        Pass 2  - re-query Redis for users whose delivery failed, send again.
-                  Failures on the second pass are silently dropped + lazily evicted.
-"""
-
 import asyncio
 from datetime import datetime
 
 import logging
 from logging.handlers import RotatingFileHandler
 import grpc
-from sqlalchemy import func, select
+from sqlalchemy import select
 from functools import wraps
 from .grpc_proto import grpc_stub_pb2 as pb2
 from .grpc_proto import grpc_stub_pb2_grpc as pb2_grpc
@@ -78,13 +63,6 @@ async def _try_deliver(
     cm_address: str,
     outbound: pb2.OutboundMessage,
 ) -> list[int]:
-    """
-    Attempt to deliver *outbound* to *cm_address* exactly once.
-
-    Returns the list of user IDs that were NOT delivered (either returned by
-    the CM in DeliveryAck.failed_user_ids, or all target IDs on a transport
-    error).  Does NOT perform lazy eviction — callers decide that.
-    """
     stub = _get_cm_stub(cm_address)
     try:
         ack: pb2.DeliveryAck = await stub.DeliverOutboundMessage(outbound, timeout=5)
@@ -101,14 +79,6 @@ async def _fanout(
     sender_id:  int,
     outbound_factory,          # callable(target_user_ids) → pb2.OutboundMessage
 ) -> None:
-    """
-    Deliver to *user_ids* (excluding *sender_id*) with a 2-pass retry.
-
-    Pass 1 - route every online user to their CM, send in parallel.
-    Sleep  - 75 ms to allow reconnecting clients to finish handshake.
-    Pass 2 - re-route only the failed IDs; remaining failures are lazily
-             evicted and silently dropped.
-    """
     # ── Pass 1: collect routes ────────────────────────────────────────────────
     cm_to_users: dict[str, list[int]] = {}
     for uid in user_ids:
@@ -135,9 +105,6 @@ async def _fanout(
     failed_pass1: list[int] = []
     for addr, result_failed in zip(cm_to_users.keys(), results):
         failed_pass1.extend(result_failed)
-        # Evict only IDs that the CM explicitly reported as missing
-        # (those it couldn't find in its own active_websockets).
-        # Transport failures are handled in pass 2.
 
     if not failed_pass1:
         return

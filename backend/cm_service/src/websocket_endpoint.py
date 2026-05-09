@@ -1,19 +1,3 @@
-"""
-CM WebSocket endpoint.
-
-Auth flow (JWT validated locally — no Main Service round-trip):
-  1. Client opens  ws://cm-host:port/ws/{user_id}
-     with header   Authorization: Bearer <jwt>
-  2. CM verifies the JWT signature with the shared JWT_SECRET and confirms
-     the token's user_id matches the path's user_id.
-  3. On valid → accept WebSocket, register in RAM + Redis.
-  4. On invalid → close(1008) immediately.
-
-Message flow:
-  User → WebSocket → CM → gRPC (RouteInboundMessage) → Main Service
-  Main Service → gRPC (DeliverOutboundMessage) → CM → WebSocket → User
-"""
-
 import asyncio
 import json
 import os
@@ -24,7 +8,7 @@ from functools import wraps
 import grpc
 import jwt
 from dotenv import load_dotenv
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketException, WebSocketDisconnect, status
 
 from .grpc_proto import grpc_stub_pb2 as pb2
 from .state import add_connection, remove_connection
@@ -76,10 +60,6 @@ def _validate_token(user_id: int, token: str) -> bool:
 # ── gRPC helper ──────────────────────────────────────────────────────────────
 
 async def _forward_to_main(inbound: pb2.InboundMessage) -> pb2.RoutingAck:
-    """
-    Forward an inbound WebSocket payload to Main Service over gRPC.
-    Cycles through known servers on transport failure.
-    """
     last_exc: Exception | None = None
 
     for _ in range(len(directory._addresses) or 1):
@@ -119,12 +99,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
 
     if auth_msg.get("type") != "auth" or not isinstance(auth_msg.get("token"), str):
         await websocket.close(code=1008)
-        raise RuntimeError("First message auth failed")
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="First message must be an authentication message")
 
     token = auth_msg["token"]
     if not _validate_token(user_id, token):
         await websocket.close(code=1008)
-        raise RuntimeError("Invalid token")
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="First message authentication failed")
 
     # ── 2. Register after successful auth ────────────────────────────────────
     await add_connection(user_id, websocket)

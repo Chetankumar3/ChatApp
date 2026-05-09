@@ -1,4 +1,3 @@
-
 import asyncio
 from logging.handlers import RotatingFileHandler
 import os
@@ -24,7 +23,6 @@ SERVICE_GRPC_PORT = int(os.getenv("SERVICE_GRPC_PORT", "50051"))
 SERVICE_HTTP_PORT = int(os.getenv("SERVICE_HTTP_PORT", "8001"))
 SERVICE_ADVERTISE_HOST = os.getenv("SERVICE_ADVERTISE_HOST", "127.0.0.1")
 
-_service_id: str | None = None
 error_logger = logging.getLogger("fastapi_errors")
 error_logger.setLevel(logging.ERROR)
 file_handler = RotatingFileHandler(
@@ -40,28 +38,34 @@ error_logger.addHandler(file_handler)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _service_id
-
     # Load initial Main Service directory from Redis before accepting connections
     await directory.refresh()
     print(f"[CM] Loaded {len(directory._addresses)} Main Service address(es) from Redis")
 
-    # Register this CM instance in Redis (so Main Service can find it for heartbeats etc.)
-    advertise_addr = f"{SERVICE_ADVERTISE_HOST}:{SERVICE_GRPC_PORT}"
-    _service_id = await register_service("cm", advertise_addr)
-    print(f"[CM] Registered in Redis as {advertise_addr} (id={_service_id})")
+    advertise_http_addr = f"{SERVICE_ADVERTISE_HOST}:{SERVICE_HTTP_PORT}"
+    cm_http_id = await register_service("cm_http", advertise_http_addr)
+    print(f"[CM] Registered CM HTTP in Redis as {advertise_http_addr} (id={cm_http_id})")
 
-    heartbeat_task = asyncio.create_task(heartbeat_loop("cm", _service_id))
+    heartbeat_task = asyncio.create_task(heartbeat_loop("cm_http", cm_http_id))
     refresh_task = asyncio.create_task(directory.refresh_loop())
 
     yield
 
     heartbeat_task.cancel()
+    try:
+        await heartbeat_task
+    except asyncio.CancelledError:
+        pass
+
     refresh_task.cancel()
-    if _service_id:
-        await deregister_service("cm", _service_id)
-    await close_redis()
-    print("[CM] Shut down gracefully.")
+    try:
+        await refresh_task
+    except asyncio.CancelledError:
+        pass
+
+    if cm_http_id:
+        await deregister_service("cm_http", cm_http_id)
+    print("[CM] HTTP service shut down gracefully.")
 
 
 app = FastAPI(lifespan=lifespan, root_path="/ping/cm_service")
@@ -136,13 +140,38 @@ async def serve_grpc():
     listen_addr = f"[::]:{SERVICE_GRPC_PORT}"
     server.add_insecure_port(listen_addr)
     print(f"[CM] gRPC server listening on {listen_addr}")
-    await server.start()
-    await server.wait_for_termination()
+
+    heartbeat_task: asyncio.Task | None = None
+    cm_grpc_id: str | None = None
+    try:
+        await server.start()
+
+        advertise_grpc_addr = f"{SERVICE_ADVERTISE_HOST}:{SERVICE_GRPC_PORT}"
+        cm_grpc_id = await register_service("cm_grpc", advertise_grpc_addr)
+        print(f"[CM] Registered CM gRPC in Redis as {advertise_grpc_addr} (id={cm_grpc_id})")
+
+        heartbeat_task = asyncio.create_task(heartbeat_loop("cm_grpc", cm_grpc_id))
+        await server.wait_for_termination()
+    finally:
+        print("[CM] gRPC service shut down gracefully.")
+
+        if heartbeat_task is not None:
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
+            except asyncio.CancelledError:
+                pass
+
+        if cm_grpc_id:
+            await deregister_service("cm_grpc", cm_grpc_id)
 
 
 async def main():
     print(f"Booting Connection Manager: FastAPI ({SERVICE_HTTP_PORT}) & gRPC ({SERVICE_GRPC_PORT})...")
-    await asyncio.gather(serve_fastapi(), serve_grpc())
+    try:
+        await asyncio.gather(serve_fastapi(), serve_grpc())
+    finally:
+        await close_redis()
 
 
 if __name__ == "__main__":

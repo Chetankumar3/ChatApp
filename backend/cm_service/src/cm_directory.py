@@ -32,7 +32,7 @@ class MainServiceDirectory:
             self._stubs[address]    = pb2_grpc.MainRouterStub(self._channels[address])
 
     async def refresh(self) -> None:
-        addresses = await get_service_addresses("main")
+        addresses = await get_service_addresses("main_grpc")
         self._failed = {f for f in self._failed if f in addresses}
         self._addresses = addresses
         for addr in addresses:
@@ -53,7 +53,6 @@ class MainServiceDirectory:
             try:
                 await self.refresh()
             except Exception as exc:
-                # Remove `print`. Use logger with exc_info=True to preserve Redis traceback
                 cm_logger.error(f"Directory refresh failed: {str(exc)}", exc_info=True)
 
 
