@@ -30,6 +30,9 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = google_compute_network.main_vpc.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_alloc.name]
+  update_on_creation_fail = true
+
+  deletion_policy = "ABANDON"
 }
 
 # --- Firewall Rules ---
@@ -61,6 +64,18 @@ resource "google_compute_firewall" "allow_public_ingress" {
   target_tags   = ["public-gce"]
 }
 
+resource "google_compute_firewall" "allow_iap_ssh" {
+  name    = "allow-iap-ssh"
+  network = google_compute_network.main_vpc.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  # This is the specific CIDR range used by Google Identity-Aware Proxy
+  source_ranges = ["35.235.240.0/20"]
+}
 
 # --- Compute Engine (GCE) ---
 resource "google_compute_instance" "app_server" {
@@ -73,7 +88,7 @@ resource "google_compute_instance" "app_server" {
   boot_disk {
     initialize_params {
       image  = "debian-cloud/debian-11"
-      size   = 20
+      size   = 10
       type   = "pd-balanced"
     }
   }
@@ -86,26 +101,35 @@ resource "google_compute_instance" "app_server" {
     access_config {}
   }
 
-metadata_startup_script = <<-EOF
-    #!/bin/bash
-    sudo apt-get update
-    sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release nano unzip
+  metadata_startup_script = <<-EOF
+      #!/bin/bash
 
-    # 1. Install Docker
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-    
-    # 2. Install AWS CLI v2
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    sudo ./aws/install
+      # Define and navigate to a working directory
+      mkdir ping
+      cd ping
 
-    
+      apt-get update
+      apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release nano unzip
+
+      # 1. Install Docker
+      # Added --yes to prevent interactive prompts on reboot
+      curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+      apt-get update
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+      # 3. Authenticate Docker with GCP Artifact Registry (Non-interactive)
+      gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      # 4. Get all config files and docker compose file from GCS and run
+      gcloud storage cp -r gs://ping-configs/* .
+      chmod +x run_docker.sh
+      ./run_docker.sh
   EOF
 
   service_account {
+    email = artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com
     scopes = ["cloud-platform"]
   }
 }
@@ -134,8 +158,10 @@ resource "google_sql_database_instance" "postgres" {
   settings {
     # db-standard-2 (2 vCPU, 7.5GB RAM). Better suited for load testing 
     # than f1-micro, without paying for heavy enterprise tiers.
-    tier              = "db-standard-2" 
+    tier              = "db-custom-2-7680" 
     availability_type = "ZONAL"
+    disk_autoresize = false
+    disk_size = 10
     
     ip_configuration {
       ipv4_enabled    = false
@@ -149,6 +175,17 @@ resource "google_sql_database_instance" "postgres" {
 
   deletion_protection = false 
   depends_on          = [google_service_networking_connection.private_vpc_connection]
+}
+
+resource "google_sql_database" "my_db" {
+  name     = "testdb"
+  instance = google_sql_database_instance.postgres_instance.name
+}
+
+resource "google_sql_user" "db_user" {
+  name     = "postgres"
+  instance = google_sql_database_instance.postgres_instance.name
+  password = "Ch9.38%%"
 }
 
 resource "random_id" "db_name_suffix" {

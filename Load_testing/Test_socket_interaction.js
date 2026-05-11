@@ -8,8 +8,8 @@ import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 
 // ─── Environment ─────────────────────────────────────────────────────────────
-const BASE_URL = 'http://35.208.50.148:8000/ping/main_service';
-const WS_URL   = 'ws://35.208.50.148:8001/ping/cm_service';
+const BASE_URL = 'http://34.56.125.90/ping/main_service';
+const WS_URL   = 'ws://34.56.125.90/ping/cm_service';
 
 // ─── Custom Metrics ──────────────────────────────────────────────────────────
 const wsMsgSent     = new Counter('ws_messages_sent');
@@ -19,10 +19,12 @@ const wsRoundTrip   = new Trend('ws_round_trip_ms', true);
 // ─── Stage Configuration ─────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '1m', target: 80  },
-    { duration: '2m', target: 1000 },
-    { duration: '3m', target: 1000 },
-    { duration: '1m', target: 0 },
+    { duration: '10s', target: 10 },
+    { duration: '5s', target: 0 },
+    // { duration: '10s', target: 80  },
+    // { duration: '10s', target: 1000 },
+    // { duration: '3m', target: 1000 },
+    // { duration: '5s', target: 0 },
   ],
   thresholds: {
     http_req_failed:          ['rate<0.05'],

@@ -86,8 +86,8 @@ async def service_watcher():
 
             if current_main != last_main_servers or current_cm != last_cm_servers:
                 
-                main_lines = "\n".join([f"        server {addr} max_fails=8 fail_timeout=10s;" for addr in main_servers]) or "        server 127.0.0.1:65535 down;"
-                cm_lines = "\n".join([f"        server {addr} max_fails=8 fail_timeout=10s;" for addr in cm_servers]) or "        server 127.0.0.1:65535 down;"
+                main_lines = "\n".join([f"        server {addr}/ping/main_service max_fails=8 fail_timeout=10s;" for addr in main_servers]) or "        server 127.0.0.1:65535 down;"
+                cm_lines = "\n".join([f"        server {addr}/ping/cm_service max_fails=8 fail_timeout=10s;" for addr in cm_servers]) or "        server 127.0.0.1:65535 down;"
 
                 new_conf = NGINX_TEMPLATE.format(
                     main_servers=main_lines,

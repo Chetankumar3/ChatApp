@@ -15,6 +15,7 @@ backend/.env
 *.personal
 .env.*
 userlist.txt
+IaC/
 
 # Load testing
 Load_testing_result_htmls/
