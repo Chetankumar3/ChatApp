@@ -41,7 +41,7 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 - [x] Phase 1 load test report (k6).
 - [x] [**Phase 2: Monolithic to Microservice**](#phase-2-monolithic-to-microservice) — Extract Python Connection Manager over gRPC.
       Completed but not deployed yet.
-- [ ] Phase 2 load test report (k6).
+- [x] Phase 2 load test report (k6).
 - [ ] [**Phase 3: Horizontal Scaling**](#phase-3-horizontal-scaling) — Scale over multiple AWS instances with Redis state sync.
 - [ ] Phase 3 load test report (k6).
 - [ ] [**Phase 4: Go Connection Manager**](#phase-4-go-connection-manager) — Rewrite Connection Manager in Go for true multi-core, non-blocking I/O.

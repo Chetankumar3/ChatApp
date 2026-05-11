@@ -19,12 +19,11 @@ const wsRoundTrip   = new Trend('ws_round_trip_ms', true);
 // ─── Stage Configuration ─────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '10s', target: 10 },
-    { duration: '5s', target: 0 },
-    // { duration: '10s', target: 80  },
-    // { duration: '10s', target: 1000 },
-    // { duration: '3m', target: 1000 },
+    // { duration: '10s', target: 10 },
     // { duration: '5s', target: 0 },
+    { duration: '2m', target: 500  },
+    { duration: '2m', target: 500 },
+    { duration: '30s', target: 0 },
   ],
   thresholds: {
     http_req_failed:          ['rate<0.05'],

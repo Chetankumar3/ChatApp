@@ -44,13 +44,6 @@ services:
     env_file:
       - .env
     environment:
-    - POOL_MODE=transaction
-    - MAX_CLIENT_CONN=50000          # Higher than your expected peak concurrency
-    - DEFAULT_POOL_SIZE=100          # Adjust based on your Postgres max_connections
-    - MIN_POOL_SIZE=10
-    - RESERVE_POOL_SIZE=20
-    - RESERVE_POOL_TIMEOUT=5
-    - MAX_DB_CONNECTIONS=0           # or set based on Postgres capacity
     - ADMIN_USERS=postgres
     ulimits:
       nofile:

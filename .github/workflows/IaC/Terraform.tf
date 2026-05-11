@@ -57,7 +57,7 @@ resource "google_compute_firewall" "allow_public_ingress" {
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "5732", "6379"]
+    ports    = ["80", "5732", "6379", "8002"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -117,7 +117,7 @@ resource "google_compute_instance" "app_server" {
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
       apt-get update
-      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
 
       # 3. Authenticate Docker with GCP Artifact Registry (Non-interactive)
       gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
@@ -129,7 +129,7 @@ resource "google_compute_instance" "app_server" {
   EOF
 
   service_account {
-    email = artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com
+    email = "artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com"
     scopes = ["cloud-platform"]
   }
 }
@@ -179,12 +179,12 @@ resource "google_sql_database_instance" "postgres" {
 
 resource "google_sql_database" "my_db" {
   name     = "testdb"
-  instance = google_sql_database_instance.postgres_instance.name
+  instance = google_sql_database_instance.postgres.name
 }
 
 resource "google_sql_user" "db_user" {
   name     = "postgres"
-  instance = google_sql_database_instance.postgres_instance.name
+  instance = google_sql_database_instance.postgres.name
   password = "Ch9.38%%"
 }
 
