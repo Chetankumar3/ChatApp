@@ -77,6 +77,43 @@ resource "google_compute_firewall" "allow_iap_ssh" {
   source_ranges = ["35.235.240.0/20"]
 }
 
+resource "google_storage_bucket" "app_gcs" {
+  name          = "ping-configs"
+  location      = "us-central1"
+  force_destroy = true 
+}
+
+resource "google_storage_bucket_object" "env_file" {
+  name   = ".env"
+  bucket = google_storage_bucket.app_gcs.name
+  
+  content = templatefile("${path.module}/templates/env.tpl", {
+    redis_host = google_redis_instance.ping_cache.host
+    pg_host    = google_sql_database_instance.ping_db.ip_address.0.ip_address
+  })
+}
+
+resource "google_storage_bucket_object" "ini_file" {
+  name   = "pgbouncer.ini"
+  bucket = google_storage_bucket.app_gcs.name
+  
+  content = templatefile("${path.module}/templates/pgbouncer.tpl", {
+    redis_host = google_redis_instance.ping_cache.host
+  })
+}
+
+resource "google_storage_bucket_object" "static_files" {
+  for_each = toset([
+    "docker-compose.yaml",
+    "userlist.txt",
+    "run_docker.sh"
+  ])
+
+  name   = each.value
+  bucket = google_storage_bucket.app_gcs.name
+  source = "${path.module}/templates/${each.value}" 
+}
+
 # --- Compute Engine (GCE) ---
 resource "google_compute_instance" "app_server" {
   name         = "ping-gce-01"
@@ -132,6 +169,12 @@ resource "google_compute_instance" "app_server" {
     email = "artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com"
     scopes = ["cloud-platform"]
   }
+
+  depends_on = [
+    google_storage_bucket_object.env_file,
+    google_storage_bucket_object.ini_file,
+    google_storage_bucket_object.static_files
+  ]
 }
 
 # --- Redis (Memorystore) ---
@@ -150,7 +193,7 @@ resource "google_redis_instance" "cache" {
 }
 
 # --- PostgreSQL (Cloud SQL) ---
-resource "google_sql_database_instance" "postgres" {
+resource "google_sql_database_instance" "ping_db" {
   name             = "ping-postgres-${random_id.db_name_suffix.hex}"
   database_version = "POSTGRES_15"
   region           = "us-central1"
@@ -179,13 +222,13 @@ resource "google_sql_database_instance" "postgres" {
 
 resource "google_sql_database" "my_db" {
   name     = "testdb"
-  instance = google_sql_database_instance.postgres.name
+  instance = google_sql_database_instance.ping_db.name
 }
 
 resource "google_sql_user" "db_user" {
   name     = "postgres"
-  instance = google_sql_database_instance.postgres.name
-  password = "Ch9.38%%"
+  instance = google_sql_database_instance.ping_db.name
+  password = "Ch92.8%%"
 }
 
 resource "random_id" "db_name_suffix" {
