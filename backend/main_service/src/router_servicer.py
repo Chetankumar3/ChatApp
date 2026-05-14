@@ -17,12 +17,14 @@ from .redis.registry import get_user_route, delete_user_route
 _cm_channels: dict[str, grpc.aio.Channel] = {}
 _cm_stubs:    dict[str, pb2_grpc.ConnectionManagerStub] = {}
 
-error_logger = logging.getLogger("grpc_errors")
+error_logger = logging.getLogger("main_grpc_errors")
 error_logger.setLevel(logging.ERROR)
 file_handler = RotatingFileHandler(
     filename="grpc_exceptions.log",
-    maxBytes=10 * 1024 * 1024,
-    backupCount=5,
+    maxBytes= 5 * 1024 * 1024,
+    backupCount=3,
+    delay=True,
+    encoding="utf-8"
 )
 file_handler.setFormatter(
     logging.Formatter("%(asctime)s - %(levelname)s - gRPC: %(message)s")

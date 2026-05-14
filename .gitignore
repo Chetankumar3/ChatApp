@@ -14,12 +14,15 @@ backend/.env
 .env
 *.personal
 .env.*
+
+# Infra
 userlist.txt
-IaC/
-IaC_backup/
+.github/workflows/IaC/*
+!.github/workflows/IaC/templates/
+.github/workflows/IaC/templates/env.tpl
 
 # Load testing
-Load_testing_result_htmls/
+Load_testing_result_htmls/*
 
 # Logs
 *.log

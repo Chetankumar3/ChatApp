@@ -1,0 +1,70 @@
+# version: '3.8'
+
+services:
+  ping-main:
+    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-main:2.0
+    container_name: ping-main
+    ports:
+      - "8000:8000"
+      - "50050:50050"
+    env_file:
+      - .env
+    environment:
+      - SERVICE_ADVERTISE_HOST=${HOST_IP}
+      - SERVICE_GRPC_PORT=50050
+      - SERVICE_HTTP_PORT=8000
+      - 'CONNECT_ARGS={"statement_cache_size": 0, "prepared_statement_cache_size": 0}'
+      - ALGORITHM=HS256
+    ulimits:
+      nofile: # To avoid "no file descriptors available" error. By default this will be 1024, for viretual env of docker.
+        soft: 65536
+        hard: 65536
+    depends_on:
+      - pgbouncer
+
+  ping-cm:
+    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-cm:2.0
+    container_name: ping-cm
+    ports:
+      - "8001:8001"
+      - "50051:50051"
+    env_file:
+      - .env
+    environment:
+      - SERVICE_ADVERTISE_HOST=${HOST_IP}
+      - SERVICE_GRPC_PORT=50051
+      - SERVICE_HTTP_PORT=8001
+      - ALGORITHM=HS256
+    depends_on:
+      - ping-main
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: pgbouncer
+    env_file:
+      - .env
+    environment:
+    - ADMIN_USERS=postgres
+    ulimits:
+      nofile:
+        soft: 131072
+        hard: 131072
+    ports:
+      - "6432:6432"
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro # ro = read-only
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+  ping-gateway:
+    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-gateway:2.0
+    container_name: ping-gateway
+    ports:
+      - "80:80"
+    env_file:
+      - .env
+    environment:
+      - NGINX_CONF_PATH=/etc/nginx/conf.d/default.conf
+    restart: unless-stopped
+    depends_on:
+      - ping-main
+      - ping-cm

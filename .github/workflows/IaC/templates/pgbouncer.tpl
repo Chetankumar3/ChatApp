@@ -1,0 +1,36 @@
+[databases]
+testdb = host=${db_host} port=5432 dbname=testdb
+
+[pgbouncer]
+logfile = /var/log/pgbouncer/pgbouncer.log
+pidfile = /var/run/pgbouncer/pgbouncer.pid
+
+listen_addr = 0.0.0.0
+listen_port = 6432
+auth_type = md5
+auth_file = /etc/pgbouncer/userlist.txt
+
+pool_mode = transaction
+max_client_conn = 50000
+
+; # max db connections under normal load
+default_pool_size = 40
+min_pool_size = 8
+
+; # additional connections allowed, after default_pool_size reached
+reserve_pool_size = 25
+
+; # waiting time (5s) for client connection to create ew connection from reserve_pool
+reserve_pool_timeout = 5
+
+; # Hard cap for multiple user. In case of, single user: effective_max_pool = min(default + reserve, max_pool)
+max_db_connections = 80
+
+server_idle_timeout = 600
+; Drops server connections that have remained idle (not servicing any client) for too long.
+
+server_lifetime = 3600
+; Limits the maximum duration a server connection can stay open, regardless of whether it is active or idle.
+
+ignore_startup_parameters = extra_float_digits, search_path
+server_reset_query = DISCARD ALL

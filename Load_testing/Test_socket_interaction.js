@@ -8,8 +8,9 @@ import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 
 // ─── Environment ─────────────────────────────────────────────────────────────
-const BASE_URL = 'http://34.56.125.90/ping/main_service';
-const WS_URL   = 'ws://34.56.125.90/ping/cm_service';
+const IP = "34.172.0.167";
+const BASE_URL = `http://${IP}/ping/main_service`;
+const WS_URL   = `ws://${IP}/ping/cm_service`;
 
 // ─── Custom Metrics ──────────────────────────────────────────────────────────
 const wsMsgSent     = new Counter('ws_messages_sent');
@@ -21,14 +22,15 @@ export const options = {
   stages: [
     // { duration: '10s', target: 10 },
     // { duration: '5s', target: 0 },
-    { duration: '2m', target: 500  },
-    { duration: '2m', target: 500 },
-    { duration: '30s', target: 0 },
+    { duration: '2m', target: 800  },
+    { duration: '3m', target: 2000 },
+    { duration: '5m', target: 3500 },
+    { duration: '3m', target: 0 },
   ],
   thresholds: {
     http_req_failed:          ['rate<0.05'],
-    http_req_duration:        ['p(95)<3000'],
-    ws_connecting:            ['p(95)<4000'],
+    http_req_duration:        ['p(95)<700'],
+    ws_connecting:            ['p(95)<400'],
     ws_session_duration:      ['p(95)<60000'],
     ws_messages_sent:         ['count>0'],
   },
@@ -132,9 +134,9 @@ export default function () {
   jitter(1);
 
   // 2. WebSocket Session
-  const MAX_MESSAGES     = 10 + Math.floor(Math.random() * 11); // 10–20 msgs
-  const SEND_INTERVAL_MS = 1500 + Math.random() * 2000;         // 1.5–3.5 s
-  const SESSION_CAP_MS   = 45000;                               // hard 45s cap
+  const MAX_MESSAGES     = 10 + Math.floor(Math.random() * 150); // 10–20 msgs
+  const SEND_INTERVAL_MS = 1500 + Math.random() * 4000;         // 1.5–4 s
+  const SESSION_CAP_MS   = 60000;                               // hard 60s cap
   const sentTimestamps   = {};
 
   const wsRes = ws.connect(

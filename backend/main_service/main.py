@@ -29,8 +29,10 @@ error_logger = logging.getLogger("fastapi_errors")
 error_logger.setLevel(logging.ERROR)
 file_handler = RotatingFileHandler(
     filename="http_exceptions.log",
-    maxBytes=10 * 1024 * 1024,
-    backupCount=5, 
+    maxBytes= 3 * 1024 * 1024,
+    backupCount=3, 
+    delay=True,
+    encoding="utf-8"
 )
 file_handler.setFormatter(
     logging.Formatter("%(asctime)s - %(levelname)s - Path: %(url)s - Detail: %(message)s")

@@ -1,0 +1,9 @@
+    - Change DB in EC2
+    - Restart service: sudo systemctl restart chatapp
+- cd Load_testing
+        - Check Base_URL in k6 script
+http://34.56.125.90/ping/chat
+See EC2 performance
+dstat -tcmnd --tcp --output loadtest_metrics.csv 10
+
+Clear-Content errors_log.js -ErrorAction SilentlyContinue; $env:K6_WEB_DASHBOARD="true"; $env:K6_WEB_DASHBOARD_EXPORT="final_report.html"; k6 run --log-output=file=errors_log.js Test_socket_interaction.js

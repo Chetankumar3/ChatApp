@@ -2,8 +2,7 @@ import uuid
 import asyncio
 from .client import get_redis
 
-SERVICE_TTL = 40  # seconds
-
+SERVICE_TTL = 35  # seconds
 
 async def register_service(service_type: str, advertise_address: str) -> str:
     """Register this instance and return the unique service_id."""
