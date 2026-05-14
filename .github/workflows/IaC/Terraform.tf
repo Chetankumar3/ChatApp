@@ -77,10 +77,30 @@ resource "google_compute_firewall" "allow_iap_ssh" {
   source_ranges = ["35.235.240.0/20"]
 }
 
+resource "google_compute_firewall" "allow_swarm" {
+  name    = "allow-docker-swarm"
+  network = google_compute_network.main_vpc.id
+
+  allow {
+    protocol = "tcp"
+    ports = ["2377", "7946"]
+  }  # Swarm mgmt + node comms
+
+  allow {
+    protocol = "udp"
+    ports = ["7946", "4789"]
+  }  # Node comms + VXLAN overlay
+
+  source_ranges = ["10.0.1.0/24"]  # internal only
+}
+# ---------------- x ------------------
+
+# ----- Storage Bucket for configs (GCS) -----------
 resource "google_storage_bucket" "app_gcs" {
   name          = "ping-configs"
   location      = "us-central1"
   force_destroy = true 
+  uniform_bucket_level_access = true
 }
 
 resource "google_storage_bucket_object" "env_file" {
@@ -88,8 +108,7 @@ resource "google_storage_bucket_object" "env_file" {
   bucket = google_storage_bucket.app_gcs.name
   
   content = templatefile("${path.module}/templates/env.tpl", {
-    redis_host = google_redis_instance.ping_cache.host
-    pg_host    = google_sql_database_instance.ping_db.ip_address.0.ip_address
+    redis_host = google_redis_instance.cache.host
   })
 }
 
@@ -98,28 +117,102 @@ resource "google_storage_bucket_object" "ini_file" {
   bucket = google_storage_bucket.app_gcs.name
   
   content = templatefile("${path.module}/templates/pgbouncer.tpl", {
-    redis_host = google_redis_instance.ping_cache.host
+    db_host = google_sql_database_instance.ping_db.ip_address.0.ip_address
   })
 }
 
 resource "google_storage_bucket_object" "static_files" {
   for_each = toset([
     "docker-compose.yaml",
+    "docker-stack.yaml",
     "userlist.txt",
-    "run_docker.sh"
+    "run_docker.sh",
+    "run_docker_worker.sh"
   ])
 
   name   = each.value
   bucket = google_storage_bucket.app_gcs.name
   source = "${path.module}/templates/${each.value}" 
 }
+# -------- x ----------
 
 # --- Compute Engine (GCE) ---
 resource "google_compute_instance" "app_server" {
   name         = "ping-gce-01"
   zone         = "us-central1-c"
-  # e2-small = 2 vCPUs (shared core), 2GB RAM.
-  machine_type = "e2-small" 
+  machine_type = "e2-standard-4"
+  tags         = ["public-gce"]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-11"
+      size  = 10
+      type  = "pd-balanced"
+    }
+  }
+
+  network_interface {
+    network    = google_compute_network.main_vpc.id
+    subnetwork = google_compute_subnetwork.subnet.id
+    access_config {}
+  }
+
+  # The replace function strips Windows carriage returns (\r) 
+  # making the script Linux-safe regardless of your OS.
+  metadata_startup_script = replace(<<-EOF
+      #!/bin/bash
+      
+      # Log output so you can debug via 'cat /var/log/startup-script.log'
+      exec > /var/log/startup-script.log 2>&1
+
+      mkdir -p /ping
+      cd /ping
+
+      echo "Waiting for apt lock..."
+      while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+        sleep 2
+      done
+
+      apt-get update
+      apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release nano unzip
+
+      # 1. Install Docker
+      curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+      apt-get update
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
+
+      # 2. Grant permissions to your user (so 'docker ps' works without sudo)
+      usermod -aG docker cheta
+
+      # 3. Authenticate Docker
+      gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      # 4. Pull configs and run
+      gcloud storage cp -r gs://ping-configs/* .
+      chmod +x run_docker.sh
+      ./run_docker.sh
+  EOF
+  , "\r", "")
+
+  service_account {
+    email  = "artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com"
+    scopes = ["cloud-platform"]
+  }
+
+  depends_on = [
+    google_storage_bucket_object.env_file,
+    google_storage_bucket_object.ini_file,
+    google_storage_bucket_object.static_files
+  ]
+}
+
+resource "google_compute_instance" "worker" {
+  count        = 0                    # number of workers
+  name         = "ping-gce-worker-0${count.index + 1}"
+  zone         = "us-central1-c"
+  machine_type = "e2-standard-8"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -138,13 +231,17 @@ resource "google_compute_instance" "app_server" {
     access_config {}
   }
 
-  metadata_startup_script = <<-EOF
+  metadata_startup_script = replace(<<-EOF
       #!/bin/bash
 
       # Define and navigate to a working directory
-      mkdir ping
-      cd ping
+      mkdir -p /ping
+      cd /ping
 
+      echo "Waiting for apt lock..."
+      while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+        sleep 2
+      done
       apt-get update
       apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release nano unzip
 
@@ -161,21 +258,19 @@ resource "google_compute_instance" "app_server" {
 
       # 4. Get all config files and docker compose file from GCS and run
       gcloud storage cp -r gs://ping-configs/* .
-      chmod +x run_docker.sh
-      ./run_docker.sh
+      chmod +x run_docker_worker.sh
+      ./run_docker_worker.sh
   EOF
+  , "\r", "")
 
   service_account {
     email = "artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com"
     scopes = ["cloud-platform"]
   }
 
-  depends_on = [
-    google_storage_bucket_object.env_file,
-    google_storage_bucket_object.ini_file,
-    google_storage_bucket_object.static_files
-  ]
+  depends_on = [google_compute_instance.app_server]  # manager first
 }
+# ---------- x -----------
 
 # --- Redis (Memorystore) ---
 resource "google_redis_instance" "cache" {

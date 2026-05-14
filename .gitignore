@@ -16,6 +16,7 @@ backend/.env
 .env.*
 userlist.txt
 IaC/
+IaC_backup/
 
 # Load testing
 Load_testing_result_htmls/
