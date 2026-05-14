@@ -52,8 +52,8 @@ services:
     ports:
       - "6432:6432"
     volumes:
-      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro # ro = read-only
-      - ./userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      - /ping/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro # ro = read-only
+      - /ping/userlist.txt:/etc/pgbouncer/userlist.txt:ro
 
   ping-gateway:
     image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-gateway:2.0

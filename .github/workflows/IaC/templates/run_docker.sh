@@ -15,8 +15,16 @@ docker swarm init --advertise-addr "$HOST_IP" 2>/dev/null \
   || echo "Already a swarm member, continuing..."
 
 # After docker swarm init succeeds, save the worker token to GCS
-WORKER_TOKEN=$(docker swarm join-token worker -q)
-echo "$WORKER_TOKEN" | gcloud storage cp - gs://ping-configs/swarm-worker-token
+# Add retry logic with exponential backoff
+for i in {1..30}; do
+  WORKER_TOKEN=$(docker swarm join-token worker -q 2>/dev/null)
+  if [ ! -z "$WORKER_TOKEN" ]; then
+    echo "$WORKER_TOKEN" | gcloud storage cp - gs://ping-configs/swarm-worker-token
+    break
+  fi
+  echo "Attempt $i/30: Waiting for swarm to be ready..."
+  sleep 2
+done
 
 # 2. Create overlay network (idempotent)
 docker network create \

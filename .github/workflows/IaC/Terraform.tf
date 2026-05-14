@@ -57,7 +57,7 @@ resource "google_compute_firewall" "allow_public_ingress" {
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "5732", "6379", "8002"]
+    ports    = ["80", "5732", "6379", "8003"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -123,11 +123,11 @@ resource "google_storage_bucket_object" "ini_file" {
 
 resource "google_storage_bucket_object" "static_files" {
   for_each = toset([
-    "docker-compose.yaml",
     "docker-stack.yaml",
     "userlist.txt",
     "run_docker.sh",
-    "run_docker_worker.sh"
+    "run_docker_worker.sh",
+    "Test_socket_interaction.js"
   ])
 
   name   = each.value
@@ -140,7 +140,7 @@ resource "google_storage_bucket_object" "static_files" {
 resource "google_compute_instance" "app_server" {
   name         = "ping-gce-01"
   zone         = "us-central1-c"
-  machine_type = "e2-standard-4"
+  machine_type = "custom-16-16384"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -154,7 +154,7 @@ resource "google_compute_instance" "app_server" {
   network_interface {
     network    = google_compute_network.main_vpc.id
     subnetwork = google_compute_subnetwork.subnet.id
-    access_config {}
+    access_config {} # for public IP
   }
 
   # The replace function strips Windows carriage returns (\r) 
@@ -181,7 +181,7 @@ resource "google_compute_instance" "app_server" {
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
       apt-get update
-      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
+      apt-get install -y dstat docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
 
       # 2. Grant permissions to your user (so 'docker ps' works without sudo)
       usermod -aG docker cheta
@@ -209,10 +209,10 @@ resource "google_compute_instance" "app_server" {
 }
 
 resource "google_compute_instance" "worker" {
-  count        = 0                    # number of workers
+  count        = 1                    # number of workers
   name         = "ping-gce-worker-0${count.index + 1}"
   zone         = "us-central1-c"
-  machine_type = "e2-standard-8"
+  machine_type = "custom-16-16384"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -234,7 +234,8 @@ resource "google_compute_instance" "worker" {
   metadata_startup_script = replace(<<-EOF
       #!/bin/bash
 
-      # Define and navigate to a working directory
+      exec > /var/log/startup-script.log 2>&1
+
       mkdir -p /ping
       cd /ping
 
@@ -242,6 +243,7 @@ resource "google_compute_instance" "worker" {
       while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
         sleep 2
       done
+
       apt-get update
       apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release nano unzip
 
@@ -251,7 +253,9 @@ resource "google_compute_instance" "worker" {
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
       apt-get update
-      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
+      apt-get install -y dstat docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
+
+      usermod -aG docker cheta
 
       # 3. Authenticate Docker with GCP Artifact Registry (Non-interactive)
       gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
@@ -270,13 +274,73 @@ resource "google_compute_instance" "worker" {
 
   depends_on = [google_compute_instance.app_server]  # manager first
 }
+
+resource "google_compute_instance" "load_generator" {
+  name         = "ping-gce-03"
+  zone         = "us-central1-c"
+  machine_type = "custom-6-12288"
+  tags         = ["public-gce"]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-11"
+      size  = 10
+      type  = "pd-balanced"
+    }
+  }
+
+  network_interface {
+    network    = google_compute_network.main_vpc.id
+    subnetwork = google_compute_subnetwork.subnet.id
+    access_config {} # for public IP
+  }
+
+  metadata_startup_script = replace(<<-EOF
+      #!/bin/bash
+      
+      # Log output so you can debug via 'cat /var/log/startup-script.log'
+      exec > /var/log/startup-script.log 2>&1
+
+      mkdir -p /ping
+      cd /ping
+
+      echo "Waiting for apt lock..."
+      while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+        sleep 2
+      done
+
+      apt-get update
+      apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release nano unzip
+
+      # 1. Install Docker
+      curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+      apt-get update
+      apt-get install -y dstat docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
+
+      gcloud storage cp -r gs://ping-configs/* .
+  EOF
+  , "\r", "")
+
+  service_account {
+    email  = "artifact-registry-puller-898@project-cdd074dc-6291-4d7f-a2a.iam.gserviceaccount.com"
+    scopes = ["cloud-platform"]
+  }
+
+  depends_on = [
+    google_storage_bucket_object.env_file,
+    google_storage_bucket_object.ini_file,
+    google_storage_bucket_object.static_files
+  ]
+}
 # ---------- x -----------
 
 # --- Redis (Memorystore) ---
 resource "google_redis_instance" "cache" {
   name               = "ping-redis"
-  tier               = "BASIC"
-  memory_size_gb     = 8
+  tier               = "STANDARD"
+  memory_size_gb     = 24
   region             = "us-central1"
   location_id        = "us-central1-c"
   authorized_network = google_compute_network.main_vpc.id
@@ -294,9 +358,9 @@ resource "google_sql_database_instance" "ping_db" {
   region           = "us-central1"
 
   settings {
-    # db-standard-2 (2 vCPU, 7.5GB RAM). Better suited for load testing 
+    # db-standard-8 (2 vCPU, 7.5GB RAM). Better suited for load testing 
     # than f1-micro, without paying for heavy enterprise tiers.
-    tier              = "db-custom-2-7680" 
+    tier              = "db-custom-10-12288" 
     availability_type = "ZONAL"
     disk_autoresize = false
     disk_size = 10
