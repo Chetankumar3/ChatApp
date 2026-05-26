@@ -22,10 +22,11 @@ export const options = {
   stages: [
     // { duration: '10s', target: 10 },
     // { duration: '5s', target: 0 },
-    { duration: '2m', target: 800  },
-    { duration: '3m', target: 2000 },
-    { duration: '5m', target: 3500 },
-    { duration: '3m', target: 0 },
+     { duration: '3m', target: 1000  },
+     { duration: '4m', target: 5000 },
+     { duration: '3m', target: 8000 },
+     { duration: '10m', target: 8000 },
+     { duration: '4m', target: 0 },
   ],
   thresholds: {
     http_req_failed:          ['rate<0.05'],

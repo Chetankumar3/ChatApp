@@ -381,6 +381,13 @@ resource "google_sql_database_instance" "ping_db" {
     backup_configuration {
       enabled = true
     }
+
+    insights_config {
+      query_insights_enabled  = true
+      query_string_length     = 1024
+      record_application_tags = false
+      record_client_address   = false
+    }
   }
 
   deletion_protection = false 

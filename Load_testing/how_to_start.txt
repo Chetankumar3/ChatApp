@@ -1,7 +1,7 @@
     - Change DB in EC2
     - Restart service: sudo systemctl restart chatapp
 - cd Load_testing
-        - Check Base_URL in k6 script
+- Check Base_URL in k6 script
 http://34.56.125.90/ping/chat
 See EC2 performance
 dstat -tcmnd --tcp --output loadtest_metrics.csv 10

@@ -23,6 +23,7 @@ COPY backend/gateway/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 # Path relative to repo root
+COPY backend/gateway/nginx-master.conf /etc/nginx/nginx.conf
 COPY backend/gateway/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Inject compiled static frontend from Stage 1

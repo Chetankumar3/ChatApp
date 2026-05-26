@@ -9,7 +9,6 @@ POLL_INTERVAL = 10
 
 # Removed 'http {}' wrapper. This will drop cleanly into conf.d/
 NGINX_TEMPLATE = """
-# worker_processes auto;
 upstream main-service {{
     least_conn;
 {main_servers}
