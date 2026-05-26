@@ -139,8 +139,8 @@ resource "google_storage_bucket_object" "static_files" {
 # --- Compute Engine (GCE) ---
 resource "google_compute_instance" "app_server" {
   name         = "ping-gce-01"
-  zone         = "us-central1-c"
-  machine_type = "custom-16-16384"
+  zone         = "us-central1-a"
+  machine_type = "custom-6-8192"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -211,8 +211,8 @@ resource "google_compute_instance" "app_server" {
 resource "google_compute_instance" "worker" {
   count        = 1                    # number of workers
   name         = "ping-gce-worker-0${count.index + 1}"
-  zone         = "us-central1-c"
-  machine_type = "custom-16-16384"
+  zone         = "us-central1-a"
+  machine_type = "custom-4-4096"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -226,9 +226,7 @@ resource "google_compute_instance" "worker" {
   network_interface {
     network    = google_compute_network.main_vpc.id
     subnetwork = google_compute_subnetwork.subnet.id
-    
-    # This empty block gives the VM an ephemeral Public IP
-    access_config {}
+    access_config {} # for public IP
   }
 
   metadata_startup_script = replace(<<-EOF
@@ -263,6 +261,10 @@ resource "google_compute_instance" "worker" {
       # 4. Get all config files and docker compose file from GCS and run
       gcloud storage cp -r gs://ping-configs/* .
       chmod +x run_docker_worker.sh
+      
+      export MANAGER_IP=${google_compute_instance.app_server.network_interface.0.network_ip}
+      echo "\nMANAGER_IP=$MANAGER_IP" >> /ping/.env
+
       ./run_docker_worker.sh
   EOF
   , "\r", "")
@@ -276,9 +278,9 @@ resource "google_compute_instance" "worker" {
 }
 
 resource "google_compute_instance" "load_generator" {
-  name         = "ping-gce-03"
-  zone         = "us-central1-c"
-  machine_type = "custom-6-12288"
+  name         = "ping-gce-load-gen"
+  zone         = "us-central1-a"
+  machine_type = "custom-2-4096"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -315,11 +317,17 @@ resource "google_compute_instance" "load_generator" {
       # 1. Install Docker
       curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      # Install k6
+      curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+      echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
 
       apt-get update
-      apt-get install -y dstat docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
+      apt-get install -y k6 dstat docker-ce docker-ce-cli containerd.io docker-compose-plugin dstat
 
       gcloud storage cp -r gs://ping-configs/* .
+
+      sudo chown -R cheta:cheta /ping
+
   EOF
   , "\r", "")
 
@@ -339,7 +347,7 @@ resource "google_compute_instance" "load_generator" {
 # --- Redis (Memorystore) ---
 resource "google_redis_instance" "cache" {
   name               = "ping-redis"
-  tier               = "STANDARD"
+  tier               = "STANDARD_HA"
   memory_size_gb     = 24
   region             = "us-central1"
   location_id        = "us-central1-c"
@@ -360,7 +368,7 @@ resource "google_sql_database_instance" "ping_db" {
   settings {
     # db-standard-8 (2 vCPU, 7.5GB RAM). Better suited for load testing 
     # than f1-micro, without paying for heavy enterprise tiers.
-    tier              = "db-custom-10-12288" 
+    tier              = "db-custom-6-8192" 
     availability_type = "ZONAL"
     disk_autoresize = false
     disk_size = 10

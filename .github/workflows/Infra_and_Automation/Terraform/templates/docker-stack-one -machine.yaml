@@ -5,7 +5,7 @@ networks:
 
 services:
   ping-main:
-    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-main:2.0
+    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-main:2.1
     networks:
       - ping-overlay
     env_file:
@@ -13,14 +13,14 @@ services:
     environment:
       - SERVICE_GRPC_PORT=50050
       - SERVICE_HTTP_PORT=8000
-      - 'CONNECT_ARGS={"statement_cache_size": 0, "prepared_statement_cache_size": 0, "pool_pre_ping": true, "pool_size": 20, "max_overflow": 40, "pool_timeout": 30, "pool_recycle": 1800}'
+      - 'CONNECT_ARGS={"statement_cache_size": 0, "prepared_statement_cache_size": 0}'
       - ALGORITHM=HS256
     ulimits:
       nofile:  # To avoid "no file descriptors available" error. By default this will be 1024, for viretual env of docker.
         soft: 65536
         hard: 65536
     deploy:
-      replicas: 6     # one per vCPU core; tune based on CPU count
+      replicas: 2     # one per vCPU core; tune based on CPU count
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -31,14 +31,14 @@ services:
       resources:            # prevent one replica from starving others
         limits:
           cpus: '1.0'
-          memory: 2G
+          memory: 3G
         reservations:
           cpus: '0.4'
           memory: 1G
     # NO ports block — internal only, gateway handles all inbound routing
 
   ping-cm:
-    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-cm:2.0
+    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-cm:2.1
     networks:
       - ping-overlay
     env_file:
@@ -48,7 +48,7 @@ services:
       - SERVICE_HTTP_PORT=8001
       - ALGORITHM=HS256
     deploy:
-      replicas: 6
+      replicas: 2
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -82,14 +82,15 @@ services:
       - /ping/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
       - /ping/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     deploy:
-      replicas: 2
+      replicas: 1
       placement:
-        max_replicas_per_node: 1  # always on the manager node
+        constraints:
+          - node.role == manager   # always on the manager node
       restart_policy:
         condition: on-failure
 
   ping-gateway:
-    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-gateway:2.0
+    image: us-central1-docker.pkg.dev/project-cdd074dc-6291-4d7f-a2a/ping/ping-gateway:2.1
     networks:
       - ping-overlay
     ports:
@@ -108,5 +109,3 @@ services:
           - node.role == manager
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 5

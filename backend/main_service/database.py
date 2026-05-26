@@ -14,7 +14,7 @@ engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args=json.loads(os.getenv("CONNECT_ARGS")),
     poolclass=NullPool,
-    pool_pre_ping=True
+    # pool_pre_ping=True # Not required due to usage of pgbouncer
 )
 
 AsyncSessionLocal = async_sessionmaker(

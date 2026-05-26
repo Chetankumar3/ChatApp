@@ -1,9 +1,3 @@
-# Old:
-#!/bin/bash
-
-# export HOST_IP=$(ip route get 1 | awk '{print $7;exit}')
-# docker compose up -d
-
 #!/bin/bash
 set -e
 
@@ -40,3 +34,11 @@ docker stack deploy \
   ping
 
 echo "Stack deployed. Check with: docker stack ps ping"
+
+sleep 60 && docker service update --force ping_ping-main && docker service update --force ping_ping-cm
+
+# Old:
+#!/bin/bash
+
+# export HOST_IP=$(ip route get 1 | awk '{print $7;exit}')
+# docker compose up -d
