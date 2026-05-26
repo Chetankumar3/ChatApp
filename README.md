@@ -4,7 +4,7 @@
 
 It's a deliberate exercise in **High Level System Design**, **concurrency**, and **multi-threading** — built with the goal of watching each architectural decision either hold up or break.
 
-**Live Demo:** [16.112.64.12.nip.io/ping/](http://16.112.64.12.nip.io/ping/)
+**Live Demo:** [16.112.64.12.nip.io/chatapp/](http://16.112.64.12.nip.io/chatapp/)
 
 ---
 
@@ -14,7 +14,6 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 - Google OAuth 2.0 + username/password authentication
 - Group management with admin roles, member add/remove, and promotion
 - Message receipts tracking
-- Fully responsive UI — mobile and desktop
 - JWT-based session management
 
 ---
@@ -30,7 +29,7 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 | Infrastructure | AWS EC2 (t3.micro), Nginx (reverse proxy + static server) |
 | CI/CD | GitHub Actions |
 | Testing | `pytest-asyncio` (integration), k6 (load) |
-| Future | C++ (connection manager), gRPC |
+| Future | Go (connection manager)|
 
 ---
 
@@ -42,8 +41,8 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 - [x] [**Phase 2: Monolithic to Microservice**](#phase-2-monolithic-to-microservice) — Extract Python Connection Manager over gRPC.
       Completed but not deployed yet.
 - [x] Phase 2 load test report (k6).
-- [ ] [**Phase 3: Horizontal Scaling**](#phase-3-horizontal-scaling) — Scale over multiple AWS instances with Redis state sync.
-- [ ] Phase 3 load test report (k6).
+- [x] [**Phase 3: Horizontal Scaling**](#phase-3-horizontal-scaling) — Scale over multiple AWS instances with Redis state sync.
+- [x] Phase 3 load test report (k6).
 - [ ] [**Phase 4: Go Connection Manager**](#phase-4-go-connection-manager) — Rewrite Connection Manager in Go for true multi-core, non-blocking I/O.
 - [ ] Phase 4 load test report (k6).
 - [ ] [**Phase 5: Perfection & Features**](#phase-5-perfection--features) — Feature completeness (Read receipts, presence, OS-level push notifications).

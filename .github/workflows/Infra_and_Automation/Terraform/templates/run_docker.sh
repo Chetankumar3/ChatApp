@@ -35,7 +35,7 @@ docker stack deploy \
 
 echo "Stack deployed. Check with: docker stack ps ping"
 
-sleep 60 && docker service update --force ping_ping-main && docker service update --force ping_ping-cm
+sleep 120 && docker service update --force ping_ping-main && docker service update --force ping_ping-cm
 
 # Old:
 #!/bin/bash

@@ -46,7 +46,7 @@ crash.*.log
 tfplan
 
 # Load testing
-Load_testing_result_htmls/*
+Load_testing_result/**/*.html
 
 # Logs
 *.log

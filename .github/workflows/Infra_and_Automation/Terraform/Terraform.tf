@@ -140,7 +140,7 @@ resource "google_storage_bucket_object" "static_files" {
 resource "google_compute_instance" "app_server" {
   name         = "ping-gce-01"
   zone         = "us-central1-a"
-  machine_type = "custom-6-8192"
+  machine_type = "custom-6-20480"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -212,7 +212,7 @@ resource "google_compute_instance" "worker" {
   count        = 1                    # number of workers
   name         = "ping-gce-worker-0${count.index + 1}"
   zone         = "us-central1-a"
-  machine_type = "custom-4-4096"
+  machine_type = "custom-4-12288"
   tags         = ["public-gce"]
 
   boot_disk {
@@ -280,7 +280,7 @@ resource "google_compute_instance" "worker" {
 resource "google_compute_instance" "load_generator" {
   name         = "ping-gce-load-gen"
   zone         = "us-central1-a"
-  machine_type = "custom-2-4096"
+  machine_type = "custom-2-12288"
   tags         = ["public-gce"]
 
   boot_disk {
