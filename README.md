@@ -8,6 +8,21 @@ It's a deliberate exercise in **High Level System Design**, **concurrency**, and
 
 ---
 
+## 📊 Load Testing & Concurrency Analysis
+I recently concluded my stress tests on a strictly limited 6-vCPU GCP environment using Docker Swarm. 
+
+* **6,000 Concurrent Users:** Handled flawlessly with a **P95 latency of 198ms**.
+* 📈 [View Interactive k6 HTML Dashboard of this test](https://chetan-bucket3.s3.us-east-1.amazonaws.com/final_report-6k-vus.html)
+
+* **8,000 Concurrent Users:** Handled successfully but with queueing delays, resulting in a **P95 latency of 11s**.
+* 📈 [View Interactive k6 HTML Dashboard of this test](https://chetan-bucket3.s3.us-east-1.amazonaws.com/final_report-8k-vus.html)
+
+**Bottleneck Analysis:** Telemetry and Nginx logs confirmed the delay was caused by the Python Uvicorn queue overflowing. While network and database buffers (PgBouncer) held up perfectly, Python's GIL bottlenecked the worker processing rate. 
+
+**Handcrafted Report and Test Analysis:** * 📄 [Read the Full Load Test & Telemetry Report PDF](https://chetan-bucket3.s3.us-east-1.amazonaws.com/Ping-test+Analysis.pdf)
+
+---
+
 ## Features
 
 - Real-time direct and group messaging over WebSocket
